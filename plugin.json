@@ -1,51 +1,30 @@
 {
-  "name": "plugin-sample",
-  "author": "Vanessa",
-  "url": "https://github.com/siyuan-note/plugin-sample",
-  "version": "0.4.5",
+  "name": "siyuan-task-planner",
+  "author": "Your Name",
+  "url": "",
+  "version": "0.1.0",
   "minAppVersion": "3.5.3",
-  "backends": [
-    "windows",
-    "linux",
-    "darwin",
-    "ios",
-    "android",
-    "harmony",
-    "docker",
-    "all"
-  ],
-  "frontends": [
-    "desktop",
-    "mobile",
-    "browser-desktop",
-    "browser-mobile",
-    "desktop-window",
-    "all"
-  ],
-  "disabledInPublish": false,
+  "backends": ["all"],
+  "frontends": ["all"],
   "displayName": {
-    "default": "Plugin Sample",
-    "zh_CN": "插件示例"
+    "default": "Task Planner",
+    "zh_CN": "任务规划"
   },
   "description": {
-    "default": "This is a plugin development sample",
-    "zh_CN": "这是一个插件开发示例"
+    "default": "A task planning plugin for SiYuan Note",
+    "zh_CN": "思源笔记的任务规划插件"
   },
   "readme": {
     "default": "README.md",
     "zh_CN": "README_zh_CN.md"
   },
   "funding": {
-    "openCollective": "",
-    "patreon": "",
-    "github": "",
-    "custom": [
-      "https://ld246.com/sponsor"
-    ]
+    "custom": []
   },
   "keywords": [
-    "开发者参考",
-    "developer reference",
-    "示例插件"
+    "task",
+    "planner",
+    "kanban",
+    "todo"
   ]
 }
