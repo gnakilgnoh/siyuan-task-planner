@@ -1,69 +1,38 @@
-# Task Planner Plugin for SiYuan Note
+# 思源笔记任务规划插件 (Task Planner)
 
-A task planning plugin designed for SiYuan Note, featuring a monthly calendar view and task list management. It supports creating, deleting, and prioritizing tasks, with integrated Lunar calendar display.
+一个为思源笔记（SiYuan Note）设计的任务规划插件，提供月视图日历和任务列表管理功能，支持任务的创建、删除、优先级管理，并集成了农历显示。
 
-![Preview](./preview.jpg)
+## 主要功能
 
-## Features
+*   **月视图日历**：直观展示每月的任务安排，支持农历日期和节日显示。
+*   **周行布局**：任务以条形展示，跨天任务自动连接，视觉效果清晰（类似滴答清单）。
+*   **任务列表**：侧边栏实时显示任务列表，支持按时间排序和快速删除。
+*   **便捷添加**：支持通过侧边栏按钮快速添加任务，设置开始/结束时间和优先级。
+*   **优先级管理**：提供高、中、低三种优先级，以不同颜色区分（红、蓝、绿）。
+*   **农历支持**：日历格子集成农历日期、节气及中西方节日显示。
 
-*   **Monthly Calendar View**: Visually displays monthly task schedules with Lunar dates and festival support.
-*   **Week-Row Layout**: Tasks are displayed as bars, spanning across days automatically, offering a clear visual style (similar to TickTick).
-*   **Task List**: The sidebar displays a real-time list of tasks, supporting time-based sorting and quick deletion.
-*   **Quick Add**: Easily add tasks via the sidebar button, setting start/end times and priority.
-*   **Priority Management**: Supports High, Medium, and Low priorities, distinguished by colors (Red, Blue, Green).
-*   **Lunar Calendar Support**: Calendar cells integrate Lunar dates, solar terms, and holidays.
+## 安装方法
 
-## Installation
+1.  打开思源笔记。
+2.  进入 **设置** -> **集市** -> **插件**。
+3.  搜索 `Task Planner` 或 `任务规划`。
+4.  点击 **安装**。
+5.  安装完成后，在顶部栏右侧会出现插件图标，点击即可打开。
 
-1.  Open SiYuan Note.
-2.  Go to **Settings** -> **Bazaar** -> **Plugins**.
-3.  Search for `Task Planner`.
-4.  Click **Install**.
-5.  Once installed, a plugin icon will appear in the top bar. Click to open.
+## 使用说明
 
-## Usage
+### 1. 打开插件
+点击顶部栏的“任务规划”图标（布局图标），即可打开任务规划页签。
 
-### 1. Open Plugin
-Click the "Task Planner" icon (layout icon) in the top bar to open the task planner tab.
+### 2. 添加任务
+*   点击侧边栏顶部的 **+** 按钮。
+*   在弹出的对话框中输入：
+    *   **任务内容**：必填。
+    *   **开始时间**：必填。
+    *   **结束时间**：必填。
+    *   **优先级**：默认为“中”。
+*   点击 **确定** 保存。
 
-### 2. Add Task
-*   Click the **+** button at the top of the sidebar.
-*   In the dialog, enter:
-    *   **Content**: Required.
-    *   **Start Time**: Required.
-    *   **End Time**: Required.
-    *   **Priority**: Defaults to "Medium".
-*   Click **Confirm** to save.
-
-### 3. View Tasks
-*   **Calendar View**: Tasks appear as colored bars in the corresponding date cells. Tasks spanning multiple days show as continuous bars.
-*   **List View**: The sidebar lists all tasks, sorted by start time in descending order.
-
-### 4. Delete Task
-*   Hover over a task in the sidebar list.
-*   Click the **Delete Icon** (trash can) that appears on the right to remove the task.
-
-## Development
-
-If you want to contribute or build it yourself:
-
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/gnakilgnoh/siyuan-task-planner.git
-    ```
-2.  Install dependencies:
-    ```bash
-    pnpm install
-    ```
-3.  Start development mode:
-    ```bash
-    pnpm run dev
-    ```
-4.  Build for production:
-    ```bash
-    pnpm run build
-    ```
-
-## License
-
-MIT
+### 3. 查看任务
+*   **日历视图**：任务会以彩色条状显示在对应的日期格子中。跨越日期的任务会显示为连续的长条。
+*   **列表视图**：侧边栏会列出所有任务，按开始时间倒序排列。

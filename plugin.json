@@ -6,6 +6,7 @@
   "minAppVersion": "3.5.3",
   "backends": ["all"],
   "frontends": ["all"],
+  "disabledInPublish": true,
   "displayName": {
     "default": "Task Planner",
     "zh_CN": "任务规划"
@@ -15,8 +16,8 @@
     "zh_CN": "思源笔记的任务规划插件(针对工作场景做该插件的使用探索)"
   },
   "readme": {
-    "default": "README.md",
-    "zh_CN": "README_zh_CN.md"
+    "default": "README_en_US.md",
+    "zh_CN": "README.md"
   },
   "funding": {
     "custom": []
