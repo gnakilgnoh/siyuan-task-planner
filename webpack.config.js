@@ -74,6 +74,9 @@ module.exports = (env, argv) => {
         resolve: {
             extensions: [".ts", ".scss", ".js", ".json"],
         },
+        performance: {
+            hints: false, // 忽略性能提示（文件大小警告）
+        },
         module: {
             rules: [
                 {
