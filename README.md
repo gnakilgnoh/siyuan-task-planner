@@ -1,17 +1,69 @@
-[中文](https://github.com/siyuan-note/plugin-sample/blob/main/README.md)
+# Task Planner Plugin for SiYuan Note
 
-# Siyuan Note Task Planning Plug-in
+A task planning plugin designed for SiYuan Note, featuring a monthly calendar view and task list management. It supports creating, deleting, and prioritizing tasks, with integrated Lunar calendar display.
 
-This plug-in is designed to help users plan and manage tasks in Siyuan notes and improve work efficiency.
+![Preview](./preview.jpg)
 
-## Function introduction
--Task planning: automatically close tabs that have not been used for a long time according to the time interval set by users.
--Task management: users can create, edit and delete tasks in Siyuan notes.
--Task Priority: Users can set priorities for tasks to better manage them.
--Task deadline: users can set the deadline for tasks so as to finish them in time.
+## Features
 
-## Start using
-Users need to install and enable this plug-in in Siyuan Notes. After the installation, users can configure the time interval of task planning in the plug-in settings.
+*   **Monthly Calendar View**: Visually displays monthly task schedules with Lunar dates and festival support.
+*   **Week-Row Layout**: Tasks are displayed as bars, spanning across days automatically, offering a clear visual style (similar to TickTick).
+*   **Task List**: The sidebar displays a real-time list of tasks, supporting time-based sorting and quick deletion.
+*   **Quick Add**: Easily add tasks via the sidebar button, setting start/end times and priority.
+*   **Priority Management**: Supports High, Medium, and Low priorities, distinguished by colors (Red, Blue, Green).
+*   **Lunar Calendar Support**: Calendar cells integrate Lunar dates, solar terms, and holidays.
 
-## Recently updated
-2026-01: Add task priority function.
+## Installation
+
+1.  Open SiYuan Note.
+2.  Go to **Settings** -> **Bazaar** -> **Plugins**.
+3.  Search for `Task Planner`.
+4.  Click **Install**.
+5.  Once installed, a plugin icon will appear in the top bar. Click to open.
+
+## Usage
+
+### 1. Open Plugin
+Click the "Task Planner" icon (layout icon) in the top bar to open the task planner tab.
+
+### 2. Add Task
+*   Click the **+** button at the top of the sidebar.
+*   In the dialog, enter:
+    *   **Content**: Required.
+    *   **Start Time**: Required.
+    *   **End Time**: Required.
+    *   **Priority**: Defaults to "Medium".
+*   Click **Confirm** to save.
+
+### 3. View Tasks
+*   **Calendar View**: Tasks appear as colored bars in the corresponding date cells. Tasks spanning multiple days show as continuous bars.
+*   **List View**: The sidebar lists all tasks, sorted by start time in descending order.
+
+### 4. Delete Task
+*   Hover over a task in the sidebar list.
+*   Click the **Delete Icon** (trash can) that appears on the right to remove the task.
+
+## Development
+
+If you want to contribute or build it yourself:
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/gnakilgnoh/siyuan-task-planner.git
+    ```
+2.  Install dependencies:
+    ```bash
+    pnpm install
+    ```
+3.  Start development mode:
+    ```bash
+    pnpm run dev
+    ```
+4.  Build for production:
+    ```bash
+    pnpm run build
+    ```
+
+## License
+
+MIT
