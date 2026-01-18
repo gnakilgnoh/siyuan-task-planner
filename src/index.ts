@@ -5,7 +5,7 @@ import {
 } from "siyuan";
 import "./index.scss";
 import { TaskStore } from "./services/TaskStore";
-import { TaskForm } from "./ui/TaskForm";
+import { TaskList } from "./ui/TaskList";
 import { CalendarView } from "./ui/CalendarView";
 
 const TAB_TYPE = "task_planner_tab";
@@ -42,26 +42,25 @@ export default class TaskPlannerPlugin extends Plugin {
                 container.innerHTML = `
                     <div class="task-planner-tab">
                         <div class="task-planner-layout">
-                            <div class="task-planner-sidebar" id="taskFormContainer"></div>
+                            <div class="task-planner-sidebar" id="taskListContainer"></div>
                             <div class="task-planner-main" id="calendarContainer"></div>
                         </div>
                     </div>`;
                 
-                const formContainer = container.querySelector("#taskFormContainer");
+                const listContainer = container.querySelector("#taskListContainer");
                 const calendarContainer = container.querySelector("#calendarContainer");
                 
-                console.log("Containers found:", { formContainer, calendarContainer });
+                console.log("Containers found:", { listContainer, calendarContainer });
                 
-                if (formContainer && calendarContainer) {
+                if (listContainer && calendarContainer) {
                     const calendarView = new CalendarView(calendarContainer as HTMLElement, self.store);
                     calendarView.render();
     
-                    const taskForm = new TaskForm(formContainer as HTMLElement, self.store, () => {
-                        // 任务添加后的回调：刷新日历
+                    const taskList = new TaskList(listContainer as HTMLElement, self.store, () => {
+                        // 任务更新后的回调：刷新日历
                         calendarView.render();
-                        showMessage("任务添加成功！");
                     });
-                    taskForm.render();
+                    taskList.render();
                 } else {
                     console.error("Failed to find containers for task planner");
                 }

@@ -1,6 +1,9 @@
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
 import { ITask } from "../types";
 import { TaskStore } from "../services/TaskStore";
+
+dayjs.extend(isBetween);
 
 export class CalendarView {
     private container: HTMLElement;
@@ -24,61 +27,152 @@ export class CalendarView {
                 <div class="calendar-grid-header">
                     <div>周日</div><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div>
                 </div>
-                <div class="calendar-grid" id="calendarGrid"></div>
+                <div class="calendar-weeks" id="calendarWeeks"></div>
             </div>
         `;
 
-        this.renderDays();
+        this.renderWeeks();
         this.bindEvents();
     }
 
-    private renderDays() {
-        const grid = this.container.querySelector("#calendarGrid");
-        if (!grid) return;
+    private renderWeeks() {
+        const weeksContainer = this.container.querySelector("#calendarWeeks");
+        if (!weeksContainer) return;
+        weeksContainer.innerHTML = "";
 
-        grid.innerHTML = "";
-        
         const startOfMonth = this.currentMonth.startOf("month");
         const endOfMonth = this.currentMonth.endOf("month");
-        const startDay = startOfMonth.day(); // 0 is Sunday
-        const daysInMonth = this.currentMonth.daysInMonth();
+        
+        // Calculate start date of the calendar view (Sunday of the first week)
+        const startViewDate = startOfMonth.startOf("week");
+        const endViewDate = endOfMonth.endOf("week");
 
-        // Previous month filler
-        for (let i = 0; i < startDay; i++) {
-            const day = document.createElement("div");
-            day.className = "calendar-day empty";
-            grid.appendChild(day);
-        }
-
-        // Current month days
-        const tasks = this.store.getTasks();
-        for (let i = 1; i <= daysInMonth; i++) {
-            const date = this.currentMonth.date(i);
-            const dayEl = document.createElement("div");
-            dayEl.className = "calendar-day";
-            dayEl.innerHTML = `<div class="day-number">${i}</div>`;
-            
-            // Render tasks for this day
-            const dayTasks = this.getTasksForDate(date, tasks);
-            dayTasks.forEach(task => {
-                const taskEl = document.createElement("div");
-                taskEl.className = `task-item task-priority-${task.priority}`;
-                taskEl.innerText = task.content;
-                taskEl.title = `${task.content} (${dayjs(task.startTime).format("HH:mm")} - ${dayjs(task.endTime).format("HH:mm")})`;
-                dayEl.appendChild(taskEl);
-            });
-
-            grid.appendChild(dayEl);
+        let currentWeekStart = startViewDate;
+        
+        while (currentWeekStart.isBefore(endViewDate)) {
+            const weekRow = this.renderWeekRow(currentWeekStart);
+            weeksContainer.appendChild(weekRow);
+            currentWeekStart = currentWeekStart.add(1, "week");
         }
     }
 
-    private getTasksForDate(date: dayjs.Dayjs, tasks: ITask[]): ITask[] {
-        return tasks.filter(task => {
-            const start = dayjs(task.startTime);
-            const end = dayjs(task.endTime);
-            // Check if date is within task range (inclusive)
-            return date.isSame(start, 'day') || date.isSame(end, 'day') || (date.isAfter(start, 'day') && date.isBefore(end, 'day'));
+    private renderWeekRow(weekStart: dayjs.Dayjs): HTMLElement {
+        const weekEl = document.createElement("div");
+        weekEl.className = "calendar-week-row";
+
+        // 1. Render Background Grid (Dates)
+        const bgLayer = document.createElement("div");
+        bgLayer.className = "week-bg-layer";
+        
+        for (let i = 0; i < 7; i++) {
+            const date = weekStart.add(i, "day");
+            const cell = document.createElement("div");
+            cell.className = "day-cell";
+            
+            if (!date.isSame(this.currentMonth, "month")) {
+                cell.classList.add("other-month");
+            }
+            if (date.isSame(dayjs(), "day")) {
+                cell.classList.add("today");
+            }
+
+            cell.innerHTML = `<span class="day-num">${date.date()}</span>`;
+            bgLayer.appendChild(cell);
+        }
+        weekEl.appendChild(bgLayer);
+
+        // 2. Render Tasks Layer
+        const taskLayer = document.createElement("div");
+        taskLayer.className = "week-task-layer";
+        
+        const tasks = this.store.getTasks();
+        const weekEnd = weekStart.add(6, "day").endOf("day");
+        
+        // Filter tasks that overlap with this week
+        const weekTasks = tasks.filter(task => {
+            const taskStart = dayjs(task.startTime).startOf('day');
+            const taskEnd = dayjs(task.endTime).endOf('day');
+            // Check intersection: !(taskEnd < weekStart || taskStart > weekEnd)
+            return !(taskEnd.isBefore(weekStart) || taskStart.isAfter(weekEnd));
         });
+
+        // Layout algorithm
+        const taskSlots: (ITask | null)[][] = []; // row -> col(0-6) -> task
+
+        // Sort tasks: longer tasks first, then earlier start time
+        weekTasks.sort((a, b) => {
+            const spanA = dayjs(a.endTime).diff(dayjs(a.startTime));
+            const spanB = dayjs(b.endTime).diff(dayjs(b.startTime));
+            if (spanA !== spanB) return spanB - spanA;
+            return a.startTime - b.startTime;
+        });
+
+        weekTasks.forEach(task => {
+            const taskStart = dayjs(task.startTime).startOf('day');
+            const taskEnd = dayjs(task.endTime).endOf('day');
+
+            // Calculate overlap with current week
+            const viewStart = taskStart.isBefore(weekStart) ? weekStart : taskStart;
+            const viewEnd = taskEnd.isAfter(weekEnd) ? weekEnd : taskEnd;
+
+            const startCol = viewStart.diff(weekStart, 'day');
+            const span = viewEnd.diff(viewStart, 'day') + 1;
+
+            // Find a slot
+            let rowIndex = 0;
+            while (true) {
+                if (!taskSlots[rowIndex]) {
+                    taskSlots[rowIndex] = new Array(7).fill(null);
+                }
+                
+                let canFit = true;
+                for (let i = startCol; i < startCol + span; i++) {
+                    if (taskSlots[rowIndex][i]) {
+                        canFit = false;
+                        break;
+                    }
+                }
+
+                if (canFit) {
+                    // Place task
+                    for (let i = startCol; i < startCol + span; i++) {
+                        taskSlots[rowIndex][i] = task;
+                    }
+                    
+                    // Create Task Element
+                    const taskEl = document.createElement("div");
+                    taskEl.className = `task-bar task-priority-${task.priority}`;
+                    taskEl.textContent = task.content;
+                    taskEl.title = `${task.content} (${dayjs(task.startTime).format("YYYY-MM-DD HH:mm")} - ${dayjs(task.endTime).format("YYYY-MM-DD HH:mm")})`;
+                    
+                    // Style positioning
+                    taskEl.style.left = `${startCol * 14.28}%`;
+                    taskEl.style.width = `${span * 14.28}%`;
+                    taskEl.style.top = `${rowIndex * 24 + 24}px`; // 24px per row + initial offset
+
+                    // Visual adjustments for connections
+                    if (taskStart.isBefore(weekStart)) {
+                        taskEl.classList.add("continues-left");
+                    }
+                    if (taskEnd.isAfter(weekEnd)) {
+                        taskEl.classList.add("continues-right");
+                    }
+
+                    taskLayer.appendChild(taskEl);
+                    break;
+                }
+                rowIndex++;
+            }
+        });
+
+        // Adjust week height based on task rows
+        const maxRow = taskSlots.length;
+        const minHeight = 100; // px
+        const dynamicHeight = maxRow * 24 + 30; // buffer
+        weekEl.style.minHeight = `${Math.max(minHeight, dynamicHeight)}px`;
+
+        weekEl.appendChild(taskLayer);
+        return weekEl;
     }
 
     private bindEvents() {
