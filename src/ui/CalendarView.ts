@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
+import { Solar } from "lunar-javascript";
 import { ITask } from "../types";
 import { TaskStore } from "../services/TaskStore";
 
@@ -76,7 +77,21 @@ export class CalendarView {
                 cell.classList.add("today");
             }
 
-            cell.innerHTML = `<span class="day-num">${date.date()}</span>`;
+            // Get Lunar Date
+            const solar = Solar.fromYmd(date.year(), date.month() + 1, date.date());
+            const lunar = solar.getLunar();
+            const lunarText = lunar.getDayInChinese();
+            const festival = lunar.getFestivals()[0] || solar.getFestivals()[0] || lunar.getJieQi() || "";
+
+            const displayLunar = festival ? festival : lunarText;
+            const isFestival = !!festival;
+
+            cell.innerHTML = `
+                <div class="day-header">
+                    <span class="day-num">${date.date()}</span>
+                    <span class="day-lunar ${isFestival ? 'festival' : ''}">${displayLunar}</span>
+                </div>
+            `;
             bgLayer.appendChild(cell);
         }
         weekEl.appendChild(bgLayer);

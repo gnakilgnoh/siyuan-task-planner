@@ -187,25 +187,37 @@
 
                             &.today {
                                 background-color: rgba(var(--b3-theme-primary-rgb), 0.1);
-                                .day-num {
+                                .day-header .day-num {
                                     background-color: var(--b3-theme-primary);
                                     color: var(--b3-theme-on-primary);
                                     border-radius: 50%;
-                                    width: 24px;
-                                    height: 24px;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
                                 }
                             }
 
-                            .day-num {
-                                display: inline-block;
-                                width: 24px;
+                            .day-header {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: flex-start;
                                 height: 24px;
-                                text-align: center;
-                                line-height: 24px;
-                                font-size: 14px;
+
+                                .day-num {
+                                    width: 24px;
+                                    height: 24px;
+                                    text-align: center;
+                                    line-height: 24px;
+                                    font-size: 14px;
+                                }
+
+                                .day-lunar {
+                                    font-size: 10px;
+                                    color: var(--b3-theme-on-surface-light);
+                                    padding-right: 2px;
+                                    line-height: 1.5;
+
+                                    &.festival {
+                                        color: var(--b3-theme-primary);
+                                    }
+                                }
                             }
                         }
                     }

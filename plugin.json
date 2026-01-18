@@ -1,7 +1,7 @@
 {
   "name": "siyuan-task-planner",
-  "author": "Your Name",
-  "url": "",
+  "author": "kangkang",
+  "url": "https://github.com/gnakilgnoh/siyuan-task-planner",
   "version": "0.1.0",
   "minAppVersion": "3.5.3",
   "backends": ["all"],
@@ -12,7 +12,7 @@
   },
   "description": {
     "default": "A task planning plugin for SiYuan Note",
-    "zh_CN": "思源笔记的任务规划插件"
+    "zh_CN": "思源笔记的任务规划插件(针对工作场景)"
   },
   "readme": {
     "default": "README.md",
