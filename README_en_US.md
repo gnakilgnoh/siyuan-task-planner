@@ -1,38 +1,25 @@
-# Siyuan Note Task Planner (Task Planner)
+# Task Planner
 
-A task planning plug-in designed for SiYuan Note, which provides monthly view calendar and task list management functions, supports task creation, deletion and priority management, and integrates lunar calendar display.
+This is a plug-in designed for Siyuan Notes: Task Planner.
 
-# # Main functions
+## Original intention
 
-* * * Monthly view calendar * *: It can visually display the monthly task arrangement and support the display of lunar calendar dates and festivals.
-* * * Weekly layout * *: Tasks are displayed in bars, and cross-day tasks are automatically connected, with clear visual effects (similar to ticking list).
-* * * Task list * *: The sidebar displays the task list in real time, and supports sorting by time and quick deletion.
-* * * Convenient Add * *: Support to quickly add tasks through the sidebar button, and set the start/end time and priority.
-* * * Priority management * *: three priorities are provided, which are distinguished by different colors (red, blue and green).
-* * * Lunar calendar support * *: Calendar grid integrates the display of lunar calendar dates, solar terms and Chinese and Western festivals.
+When multiple projects are carried out at the same time in the work, it is often unclear about the priority of the task and the deadline of the task. Tick list, which has been used for some time before, still agrees with the task planning function of its calendar view, but it is naturally not suitable as a note system, so I came up with the idea of implementing a similar task management view plug-in in Siyuan notes.
 
-# # Installation method
+## Summarize the requirements
+> the following are my personal requirements, which will be adjusted according to the actual usage.
 
-1. Open Siyuan notes.
-2. enter * * settings * *-> * * bazaar * *-> * * plugin * *.
-3. Search for Task Planner' or `task planning'.
-4. Click * * to install * *.
-5. After the installation is completed, the plug-in icon will appear on the right side of the top bar. Click it to open it.
+- Task list management function
+  - Support task creation, deletion and priority management.
+- Calendar  
+  - Moon view
+  - Weekly view
+  - Three-day view
 
-# # Instructions for use
+## Function
 
-### 1. Open the plug-in
-Click the "task planning" icon (layout icon) in the top bar to open the task planning tab.
+After my personal preliminary requirements are realized, I will describe the functions here.
 
-### 2. Add a task
-* Click the * *+* * button at the top of the sidebar.
-* in the pop-up dialog box input:
-* * * Task content * *: required.
-* * * Start time * *: required.
-* * * End Time * *: required.
-* * * Priority * *: Medium by default.
-* Click * * OK * * to save.
+## Operation mode
 
-### 3. View tasks
-* * * Calendar view * *: Tasks will be displayed in color bars in the corresponding date grid. Tasks that span dates are displayed as continuous bars.
-* * * List view * *: The sidebar will list all tasks in reverse order of start time.
+After the installation is completed, the icon corresponding to the plug-in will appear on the right side of the top bar. After clicking it, a tab will be created, and the plug-in can be used in the tab.

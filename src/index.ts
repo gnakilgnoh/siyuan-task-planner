@@ -17,8 +17,6 @@ export default class TaskPlannerPlugin extends Plugin {
     private store: TaskStore;
 
     async onload() {
-        console.log("loading task planner plugin");
-
         // 初始化数据存储
         this.store = new TaskStore(this);
         await this.store.init();
@@ -28,12 +26,8 @@ export default class TaskPlannerPlugin extends Plugin {
         this.tab = this.addTab({
             type: TAB_TYPE,
             init: function() {
-                console.log("Task Planner Tab init called");
-                console.log("this context:", this);
-                
                 // @ts-ignore
                 const container = this.element;
-                console.log("Container from this.element:", container);
 
                 if (!container) {
                     console.error("Container is missing! 'this' might not be the Tab instance.");
@@ -51,8 +45,6 @@ export default class TaskPlannerPlugin extends Plugin {
                 const listContainer = container.querySelector("#taskListContainer");
                 const calendarContainer = container.querySelector("#calendarContainer");
                 
-                console.log("Containers found:", { listContainer, calendarContainer });
-                
                 if (listContainer && calendarContainer) {
                     const calendarView = new CalendarView(calendarContainer as HTMLElement, self.store);
                     calendarView.render();
@@ -67,10 +59,8 @@ export default class TaskPlannerPlugin extends Plugin {
                 }
             },
             beforeDestroy() {
-                console.log("before destroy task planner tab");
             },
             destroy() {
-                console.log("destroy task planner tab");
             }
         });
 
@@ -86,9 +76,7 @@ export default class TaskPlannerPlugin extends Plugin {
     }
 
     onunload() {
-        console.log("unloading task planner plugin");
         const tabs = this.getOpenedTabs();
-        console.log(`Found ${tabs.length} tabs to close`);
         tabs.forEach(tab => {
             if (tab && typeof tab.close === "function") {
                 tab.close();
@@ -99,7 +87,6 @@ export default class TaskPlannerPlugin extends Plugin {
     private getOpenedTabs() {
         const tabs: any[] = [];
         const allModels = getAllModels();
-        console.log("All models:", allModels);
         
         // @ts-ignore
         if (allModels && allModels.custom) {
