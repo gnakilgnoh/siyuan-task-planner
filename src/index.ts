@@ -1,7 +1,8 @@
 import {
     Plugin,
     openTab,
-    showMessage
+    showMessage,
+    getAllModels
 } from "siyuan";
 import "./index.scss";
 import { TaskStore } from "./services/TaskStore";
@@ -86,38 +87,33 @@ export default class TaskPlannerPlugin extends Plugin {
 
     onunload() {
         console.log("unloading task planner plugin");
-        // 查找所有插件创建的页签并关闭
-        // 优先使用 data-type="tab-header" 和 aria-label 来定位
-        // 根据截图，页签的 aria-label 是 "打开任务规划"
-        // 同时这个 li 元素有 data-type="tab-header"
-        
-        const tabTitle = this.i18n.openPlanner;
-        console.log("Looking for tabs with title:", tabTitle);
-        
-        let tabHeaders = document.querySelectorAll(`li[data-type="tab-header"][aria-label="${tabTitle}"]`);
-        
-        if (tabHeaders.length === 0) {
-            // 尝试更模糊的匹配，通过 innerText
-             const allTabs = document.querySelectorAll('li[data-type="tab-header"]');
-             // @ts-ignore
-             tabHeaders = Array.from(allTabs).filter(tab => {
-                 const text = (tab as HTMLElement).innerText;
-                 return text.includes("Task Planner") || text.includes("任务规划") || text.includes(tabTitle);
-             }) as any;
-        }
-
-        console.log(`Found ${tabHeaders.length} tabs to close`);
-
-        tabHeaders.forEach(tab => {
-            const closeBtn = tab.querySelector(".item__close") || tab.querySelector(".layout-tab-bar-item__close");
-            if (closeBtn) {
-                console.log("Closing tab:", tab);
-                // 模拟点击关闭按钮
-                (closeBtn as HTMLElement).click();
-            } else {
-                console.warn("Close button not found for tab:", tab);
+        const tabs = this.getOpenedTabs();
+        console.log(`Found ${tabs.length} tabs to close`);
+        tabs.forEach(tab => {
+            if (tab && typeof tab.close === "function") {
+                tab.close();
             }
         });
+    }
+
+    private getOpenedTabs() {
+        const tabs: any[] = [];
+        const allModels = getAllModels();
+        console.log("All models:", allModels);
+        
+        // @ts-ignore
+        if (allModels && allModels.custom) {
+            // @ts-ignore
+            allModels.custom.forEach((item: any) => {
+                // 兼容两种 type 检查：原始 type 和带插件名的 type
+                if (item && (item.type === TAB_TYPE || item.type === this.name + TAB_TYPE)) {
+                    if (item.parent && !tabs.includes(item.parent)) {
+                        tabs.push(item.parent);
+                    }
+                }
+            });
+        }
+        return tabs;
     }
 
     private openPlannerTab() {
