@@ -2,7 +2,7 @@
   "name": "siyuan-task-planner",
   "author": "kangkang",
   "url": "https://github.com/gnakilgnoh/siyuan-task-planner",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "minAppVersion": "3.5.3",
   "backends": ["all"],
   "frontends": ["all"],
