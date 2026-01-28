@@ -93,22 +93,31 @@
                         gap: 4px;
 
                         .delete-btn, .edit-btn {
-                            opacity: 1; /* Force visible for debugging/usability */
+                            opacity: 1;
                             padding: 4px;
                             color: var(--b3-theme-on-surface-light);
-                            
-                            &:hover {
-                                color: var(--b3-theme-primary);
-                                background-color: transparent; /* Prevent default button background */
-                            }
+                            background-color: transparent;
+                            border-radius: 4px;
+                            transition: all 0.2s;
+                            width: 24px;
+                            height: 24px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
                             
                             svg {
                                 width: 14px;
                                 height: 14px;
                             }
+
+                            &:hover {
+                                background-color: var(--b3-theme-background-light);
+                                color: var(--b3-theme-primary);
+                            }
                         }
 
                         .delete-btn:hover {
+                            background-color: rgba(207, 81, 81, 0.1); // Light red
                             color: var(--b3-theme-error);
                         }
                     }
@@ -126,154 +135,270 @@
 
     }
 
-    .task-planner-main {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
+.task-planner-calendar {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--b3-theme-background);
+
+    .calendar-header {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        background-color: var(--b3-theme-background);
 
-        .task-planner-calendar {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
+        .current-date {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--b3-theme-on-background);
+        }
 
-            .calendar-header {
+        .current-date-wrapper {
+            &:hover .current-date {
+                opacity: 0.8;
+            }
+        }
+
+        .date-picker-popup {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 4px;
+            background-color: var(--b3-theme-surface);
+            border: 1px solid var(--b3-theme-surface-lighter);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 12px;
+            z-index: 100;
+            width: 280px;
+
+            .picker-header {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin-bottom: 20px;
+                margin-bottom: 12px;
+                padding: 0 4px;
 
-                .current-date {
-                    font-size: 18px;
-                    font-weight: bold;
+                .picker-year {
+                    font-size: 16px;
+                    font-weight: 600;
                     color: var(--b3-theme-on-background);
+                }
+
+                .picker-nav {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+
+                    .picker-btn {
+                        background: transparent;
+                        border: none;
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 4px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        color: var(--b3-theme-on-surface-light);
+                        padding: 0;
+
+                        &:hover {
+                            background-color: var(--b3-theme-background-light);
+                            color: var(--b3-theme-on-background);
+                        }
+                    }
                 }
             }
 
-            .calendar-grid-header {
+            .picker-months {
                 display: grid;
-                grid-template-columns: repeat(7, 1fr);
-                text-align: center;
-                font-weight: bold;
-                margin-bottom: 10px;
-                color: var(--b3-theme-on-surface);
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+
+                .month-item {
+                    height: 36px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 14px;
+                    color: var(--b3-theme-on-background);
+                    border-radius: 18px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+
+                    &:hover {
+                        background-color: var(--b3-theme-background-light);
+                    }
+
+                    &.selected {
+                        background-color: #617fde; // TickTick Blue
+                        color: #fff;
+                        font-weight: 500;
+                    }
+                }
             }
+        }
 
-            .calendar-weeks {
+        .date-navigation {
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--b3-theme-surface-lighter);
+            border-radius: 6px;
+            overflow: hidden;
+            background-color: var(--b3-theme-surface);
+
+            .nav-btn {
+                background: transparent;
+                border: none;
+                padding: 0 8px;
+                cursor: pointer;
+                color: var(--b3-theme-on-surface-light);
                 display: flex;
-                flex-direction: column;
-                flex: 1;
-                border-top: 1px solid var(--b3-theme-surface-lighter);
-                border-left: 1px solid var(--b3-theme-surface-lighter);
+                align-items: center;
+                justify-content: center;
+                height: 28px;
+                transition: all 0.2s;
+                outline: none;
+
+                &:hover {
+                    background-color: var(--b3-theme-background-light);
+                    color: var(--b3-theme-on-background);
+                }
+
+                &.today-btn {
+                    padding: 0 12px;
+                    font-size: 13px;
+                    color: #617fde; // TickTick Blue
+                    font-weight: 500;
+                    border-left: 1px solid var(--b3-theme-surface-lighter);
+                    border-right: 1px solid var(--b3-theme-surface-lighter);
+                }
+            }
+        }
+    }
+
+    .calendar-grid-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+        font-weight: normal;
+        margin-bottom: 10px;
+        color: var(--b3-theme-on-surface-light);
+        font-size: 12px;
+    }
+
+    .calendar-weeks {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        // border-top: 1px solid var(--b3-theme-surface-lighter);
+        // border-left: 1px solid var(--b3-theme-surface-lighter);
+        
+        .calendar-week-row {
+            position: relative;
+            flex: 1;
+            min-height: 100px;
+            border-bottom: 1px solid var(--b3-theme-surface-lighter);
+            
+            .week-bg-layer {
+                display: flex;
+                height: 100%;
                 
-                .calendar-week-row {
-                    position: relative;
+                .day-cell {
                     flex: 1;
-                    min-height: 100px;
-                    border-bottom: 1px solid var(--b3-theme-surface-lighter);
+                    border-right: 1px solid var(--b3-theme-surface-lighter);
+                    // padding: 4px;
+                    box-sizing: border-box;
+                    background-color: var(--b3-theme-background);
                     
-                    .week-bg-layer {
-                        display: flex;
-                        height: 100%;
-                        
-                        .day-cell {
-                            flex: 1;
-                            border-right: 1px solid var(--b3-theme-surface-lighter);
-                            padding: 4px;
-                            box-sizing: border-box;
-                            
-                            &.other-month {
-                                background-color: var(--b3-theme-background-light);
-                                color: var(--b3-theme-on-surface-light);
-                            }
+                    &.other-month {
+                        // background-color: var(--b3-theme-background-light);
+                        // color: var(--b3-theme-on-surface-light);
+                        opacity: 0.5;
+                    }
 
-                            &.today {
-                                background-color: rgba(var(--b3-theme-primary-rgb), 0.1);
-                                .day-header .day-num {
-                                    background-color: var(--b3-theme-primary);
-                                    color: var(--b3-theme-on-primary);
-                                    border-radius: 50%;
-                                }
-                            }
-
-                            .day-header {
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: flex-start;
-                                height: 24px;
-
-                                .day-num {
-                                    width: 24px;
-                                    height: 24px;
-                                    text-align: center;
-                                    line-height: 24px;
-                                    font-size: 14px;
-                                }
-
-                                .day-lunar {
-                                    font-size: 10px;
-                                    color: var(--b3-theme-on-surface-light);
-                                    padding-right: 2px;
-                                    line-height: 1.5;
-
-                                    &.festival {
-                                        color: var(--b3-theme-primary);
-                                    }
-                                }
-                            }
+                    &.today {
+                        background-color: transparent; // Remove background
+                        .day-header .day-num {
+                            color: var(--b3-theme-primary);
+                            font-weight: bold;
+                            // border-radius: 50%;
                         }
                     }
 
-                    .week-task-layer {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        pointer-events: none; // Allow clicks to pass through to day cells if needed
+                    .holiday-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 10px;
+                        padding: 1px 2px;
+                        min-width: 14px;
+                        height: 14px;
+                        border-radius: 3px;
+                        color: #fff;
+                        line-height: 1;
                         
-                        .task-bar {
-                            position: absolute;
-                            height: 20px;
-                            line-height: 20px;
-                            padding: 0 4px;
-                            font-size: 12px;
-                            border-radius: 4px;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                            cursor: pointer;
-                            pointer-events: auto;
-                            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                            color: #fff;
-                            z-index: 1;
-                            
-                            background-color: var(--b3-theme-primary);
-                            border-left: 3px solid var(--b3-theme-primary-light);
-
-                            &.continues-left {
-                                border-top-left-radius: 0;
-                                border-bottom-left-radius: 0;
-                                margin-left: -2px; // Pull slightly to overlap border
-                                padding-left: 8px;
-                            }
-
-                            &.continues-right {
-                                border-top-right-radius: 0;
-                                border-bottom-right-radius: 0;
-                                margin-right: -2px;
-                            }
-
-                            &:hover {
-                                opacity: 0.9;
-                                transform: scaleY(1.05);
-                                z-index: 2;
-                            }
+                        &.rest {
+                            background-color: #4caf50; // Green
                         }
+                        &.work {
+                            background-color: #f44336; // Red
+                        }
+                    }
+                }
+            }
+
+            .week-task-layer {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none; // Allow clicks to pass through to day cells if needed
+                
+                .task-bar {
+                    position: absolute;
+                    height: 20px; // Slightly shorter (was 22px)
+                    line-height: 20px;
+                    padding: 0 8px;
+                    font-size: 12px;
+                    border-radius: 4px; // Rounded corners
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    cursor: pointer;
+                    pointer-events: auto;
+                    // box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                    color: #fff;
+                    z-index: 1;
+                    
+                    background-color: #617fde; // TickTick Blue
+                    border: none; // Remove border
+                    // border-left: 3px solid var(--b3-theme-primary-light);
+
+                    &.continues-left {
+                        border-top-left-radius: 0;
+                        border-bottom-left-radius: 0;
+                        margin-left: -2px; // Pull slightly to overlap border
+                        padding-left: 8px;
+                    }
+
+                    &.continues-right {
+                        border-top-right-radius: 0;
+                        border-bottom-right-radius: 0;
+                        margin-right: -2px;
+                    }
+
+                    &:hover {
+                        opacity: 0.9;
+                        // transform: scaleY(1.05);
+                        z-index: 2;
                     }
                 }
             }
         }
     }
+}
 }

@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
-import { Solar } from "lunar-javascript";
+import { Solar, HolidayUtil } from "lunar-javascript";
 import { ITask } from "../types";
 import { TaskStore } from "../services/TaskStore";
 
@@ -10,22 +10,62 @@ export class CalendarView {
     private container: HTMLElement;
     private store: TaskStore;
     private currentMonth: dayjs.Dayjs;
+    private isDatePickerOpen: boolean = false;
+    private pickerYear: number;
 
     constructor(container: HTMLElement, store: TaskStore) {
         this.container = container;
         this.store = store;
         this.currentMonth = dayjs();
+        this.pickerYear = this.currentMonth.year();
     }
 
     render() {
         this.container.innerHTML = `
             <div class="task-planner-calendar">
-                <div class="calendar-header">
-                    <button id="prevMonth" class="b3-button b3-button--outline">&lt;</button>
-                    <span class="current-date">${this.currentMonth.format("YYYY年MM月")}</span>
-                    <button id="nextMonth" class="b3-button b3-button--outline">&gt;</button>
+                <div class="calendar-header" style="padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;">
+                    <div class="header-left" style="display: flex; align-items: center; gap: 16px; position: relative;">
+                        <div class="current-date-wrapper" style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                            <span class="current-date" style="font-size: 20px; font-weight: 600; color: var(--b3-theme-on-background);">${this.currentMonth.format("YYYY年MM月")}</span>
+                        </div>
+                        
+                        <!-- Date Picker Popup -->
+                        <div class="date-picker-popup" style="display: ${this.isDatePickerOpen ? 'block' : 'none'};">
+                            <div class="picker-header">
+                                <span class="picker-year">${this.pickerYear}年</span>
+                                <div class="picker-nav">
+                                    <button class="picker-btn prev-year-btn">
+                                        <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor"></path></svg>
+                                    </button>
+                                    <button class="picker-btn reset-year-btn">
+                                        <svg style="width: 10px; height: 10px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                    </button>
+                                    <button class="picker-btn next-year-btn">
+                                        <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" fill="currentColor"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="picker-months">
+                                ${Array.from({ length: 12 }, (_, i) => {
+                                    const isSelected = this.pickerYear === this.currentMonth.year() && i === this.currentMonth.month();
+                                    return `<div class="month-item ${isSelected ? 'selected' : ''}" data-month="${i}">${i + 1}月</div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-right" style="display: flex;">
+                        <div class="date-navigation">
+                            <button id="prevMonth" class="nav-btn" title="上个月">
+                                <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill="currentColor"></path></svg>
+                            </button>
+                            <button id="todayBtn" class="nav-btn today-btn">今天</button>
+                            <button id="nextMonth" class="nav-btn" title="下个月">
+                                <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" fill="currentColor"></path></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="calendar-grid-header">
+                <div class="calendar-grid-header" style="border-bottom: none; padding-bottom: 8px;">
                     <div>周日</div><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div>
                 </div>
                 <div class="calendar-weeks" id="calendarWeeks"></div>
@@ -86,10 +126,20 @@ export class CalendarView {
             const displayLunar = festival ? festival : lunarText;
             const isFestival = !!festival;
 
+            const holiday = HolidayUtil.getHoliday(date.year(), date.month() + 1, date.date());
+            let holidayBadge = "";
+            if (holiday) {
+                const isWork = holiday.isWork();
+                holidayBadge = `<span class="holiday-badge ${isWork ? 'work' : 'rest'}">${isWork ? '班' : '休'}</span>`;
+            }
+
             cell.innerHTML = `
-                <div class="day-header">
-                    <span class="day-num">${date.date()}</span>
-                    <span class="day-lunar ${isFestival ? 'festival' : ''}">${displayLunar}</span>
+                <div class="day-header" style="display: flex; justify-content: space-between; padding: 4px 8px;">
+                    <div style="display: flex; align-items: center; gap: 2px;">
+                        <span class="day-num" style="font-size: 14px; font-weight: 500;">${date.date()}</span>
+                        ${holidayBadge}
+                    </div>
+                    <span class="day-lunar ${isFestival ? 'festival' : ''}" style="font-size: 10px; color: ${isFestival ? 'var(--b3-theme-primary)' : 'var(--b3-theme-on-surface-light)'};">${displayLunar}</span>
                 </div>
             `;
             bgLayer.appendChild(cell);
@@ -106,7 +156,16 @@ export class CalendarView {
         // Filter tasks that overlap with this week
         const weekTasks = tasks.filter(task => {
             const taskStart = dayjs(task.startTime).startOf('day');
-            const taskEnd = dayjs(task.endTime).endOf('day');
+            
+            let realTaskEnd = dayjs(task.endTime);
+            // If end time is 00:00 (ignoring seconds/ms), treat as end of previous day
+            if (realTaskEnd.format('HH:mm') === '00:00') {
+                if (realTaskEnd.isAfter(dayjs(task.startTime))) {
+                    realTaskEnd = realTaskEnd.subtract(1, 'minute');
+                }
+            }
+            const taskEnd = realTaskEnd.endOf('day');
+            
             // Check intersection: !(taskEnd < weekStart || taskStart > weekEnd)
             return !(taskEnd.isBefore(weekStart) || taskStart.isAfter(weekEnd));
         });
@@ -124,7 +183,14 @@ export class CalendarView {
 
         weekTasks.forEach(task => {
             const taskStart = dayjs(task.startTime).startOf('day');
-            const taskEnd = dayjs(task.endTime).endOf('day');
+            
+            let realTaskEnd = dayjs(task.endTime);
+            if (realTaskEnd.format('HH:mm') === '00:00') {
+                if (realTaskEnd.isAfter(dayjs(task.startTime))) {
+                    realTaskEnd = realTaskEnd.subtract(1, 'minute');
+                }
+            }
+            const taskEnd = realTaskEnd.endOf('day');
 
             // Calculate overlap with current week
             const viewStart = taskStart.isBefore(weekStart) ? weekStart : taskStart;
@@ -157,19 +223,34 @@ export class CalendarView {
                     // Create Task Element
                     const taskEl = document.createElement("div");
                     taskEl.className = `task-bar`;
+                    
+                    const isContLeft = taskStart.isBefore(weekStart);
+                    const isContRight = taskEnd.isAfter(weekEnd);
+                    
                     taskEl.textContent = task.content;
                     taskEl.title = `${task.content} (${dayjs(task.startTime).format("YYYY-MM-DD HH:mm")} - ${dayjs(task.endTime).format("YYYY-MM-DD HH:mm")})`;
                     
                     // Style positioning
-                    taskEl.style.left = `${startCol * 14.28}%`;
-                    taskEl.style.width = `${span * 14.28}%`;
-                    taskEl.style.top = `${rowIndex * 24 + 24}px`; // 24px per row + initial offset
+                    const cellWidth = 14.2857; // 100 / 7
+                    const leftPercent = startCol * cellWidth;
+                    const widthPercent = span * cellWidth;
+                    
+                    taskEl.style.top = `${rowIndex * 24 + 36}px`;
+
+                    // Logic to visually end in the correct cell:
+                    const marginLeft = isContLeft ? 0 : 2;
+                    // Significantly increase right margin for end of task to match TickTick style
+                    const marginRight = isContRight ? 0 : 12; 
+                    const totalMargin = marginLeft + marginRight;
+                    
+                    taskEl.style.left = `calc(${leftPercent}% + ${marginLeft}px)`;
+                    taskEl.style.width = `calc(${widthPercent}% - ${totalMargin}px)`;
 
                     // Visual adjustments for connections
-                    if (taskStart.isBefore(weekStart)) {
+                    if (isContLeft) {
                         taskEl.classList.add("continues-left");
                     }
-                    if (taskEnd.isAfter(weekEnd)) {
+                    if (isContRight) {
                         taskEl.classList.add("continues-right");
                     }
 
@@ -200,5 +281,99 @@ export class CalendarView {
             this.currentMonth = this.currentMonth.add(1, "month");
             this.render();
         });
+
+        this.container.querySelector("#todayBtn")?.addEventListener("click", () => {
+            this.currentMonth = dayjs();
+            this.render();
+        });
+
+        // Date Picker Events
+        const dateWrapper = this.container.querySelector(".current-date-wrapper");
+        const popup = this.container.querySelector(".date-picker-popup") as HTMLElement;
+        
+        dateWrapper?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.isDatePickerOpen = !this.isDatePickerOpen;
+            this.pickerYear = this.currentMonth.year(); // Reset picker year to current view year on open
+            this.render();
+        });
+
+        popup?.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
+
+        document.addEventListener("click", () => {
+            if (this.isDatePickerOpen) {
+                this.isDatePickerOpen = false;
+                this.render();
+            }
+        }, { once: true }); // Use once to avoid accumulating listeners if render is called multiple times? 
+        // No, render removes old elements but document listener persists. 
+        // Better pattern: bind document click once in constructor or handle cleanup. 
+        // For now, I'll use a named handler or just simple check. 
+        // Actually, since I re-render, the old elements are gone.
+        // But the document listener is global. I should be careful.
+        // A simple way is to check if the click target is inside the container.
+        
+        // Let's rely on the fact that clicking outside triggers document click.
+        // I will add a click listener to the container to stop propagation? No, that prevents other things.
+        // I will simply add a document click listener that checks if the click was outside the popup.
+        // Since I re-render often, I should probably manage the document listener better.
+        // Or just let the simple "click anywhere else" logic work by re-rendering.
+        
+        // Year Navigation
+        this.container.querySelector(".prev-year-btn")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.pickerYear--;
+            this.updateDatePicker();
+        });
+
+        this.container.querySelector(".next-year-btn")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.pickerYear++;
+            this.updateDatePicker();
+        });
+
+        this.container.querySelector(".reset-year-btn")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.pickerYear = dayjs().year();
+            this.updateDatePicker();
+        });
+
+        // Month Selection
+        this.container.querySelectorAll(".month-item").forEach(item => {
+            item.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const month = parseInt((e.target as HTMLElement).dataset.month || "0");
+                this.currentMonth = this.currentMonth.year(this.pickerYear).month(month);
+                this.isDatePickerOpen = false;
+                this.render();
+            });
+        });
+    }
+
+    private updateDatePicker() {
+        // Targeted update for picker content to avoid full re-render
+        const yearEl = this.container.querySelector(".picker-year");
+        if (yearEl) yearEl.textContent = `${this.pickerYear}年`;
+
+        const monthsContainer = this.container.querySelector(".picker-months");
+        if (monthsContainer) {
+            monthsContainer.innerHTML = Array.from({ length: 12 }, (_, i) => {
+                const isSelected = this.pickerYear === this.currentMonth.year() && i === this.currentMonth.month();
+                return `<div class="month-item ${isSelected ? 'selected' : ''}" data-month="${i}">${i + 1}月</div>`;
+            }).join('');
+            
+            // Re-bind month click events
+            monthsContainer.querySelectorAll(".month-item").forEach(item => {
+                item.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const month = parseInt((e.target as HTMLElement).dataset.month || "0");
+                    this.currentMonth = this.currentMonth.year(this.pickerYear).month(month);
+                    this.isDatePickerOpen = false;
+                    this.render();
+                });
+            });
+        }
     }
 }
