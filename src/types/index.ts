@@ -3,6 +3,5 @@ export interface ITask {
     content: string;
     startTime: number; // timestamp
     endTime: number;   // timestamp
-    priority: 'high' | 'medium' | 'low';
     createdAt: number;
 }

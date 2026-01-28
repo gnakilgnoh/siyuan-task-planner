@@ -156,7 +156,7 @@ export class CalendarView {
                     
                     // Create Task Element
                     const taskEl = document.createElement("div");
-                    taskEl.className = `task-bar task-priority-${task.priority}`;
+                    taskEl.className = `task-bar`;
                     taskEl.textContent = task.content;
                     taskEl.title = `${task.content} (${dayjs(task.startTime).format("YYYY-MM-DD HH:mm")} - ${dayjs(task.endTime).format("YYYY-MM-DD HH:mm")})`;
                     

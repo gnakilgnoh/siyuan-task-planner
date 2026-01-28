@@ -54,13 +54,15 @@ export class TaskList {
                 <div class="task-info">
                     <div class="task-title">${task.content}</div>
                     <div class="task-meta">
-                        <span class="task-priority priority-${task.priority}">${this.getPriorityLabel(task.priority)}</span>
                         <span class="task-date">${dayjs(task.startTime).format("MM-DD HH:mm")}</span>
                     </div>
                 </div>
                 <div class="task-actions">
+                    <button class="b3-button b3-button--text edit-btn" data-id="${task.id}" aria-label="编辑">
+                        <svg><use xlink:href="#iconEdit"></use></svg>
+                    </button>
                     <button class="b3-button b3-button--text delete-btn" data-id="${task.id}" aria-label="删除">
-                        <svg><use xlink:href="#iconTrashcan"></use></svg>
+                        <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="14" height="14"><path d="M305.067 256v625.067c0 35.413 28.587 64 64 64h285.866c35.413 0 64-28.587 64-64V256h-413.866zM369.067 881.067V320h285.866v561.067H369.067z" fill="currentColor"></path><path d="M697.6 192H597.333V142.933c0-11.733-9.6-21.333-21.333-21.333H448c-11.733 0-21.333 9.6-21.333 21.333V192H326.4c-17.707 0-32 14.293-32 32s14.293 32 32 32h371.2c17.707 0 32-14.293 32-32s-14.293-32-32-32z" fill="currentColor"></path></svg>
                     </button>
                 </div>
             `;
@@ -70,6 +72,7 @@ export class TaskList {
         // Bind delete events
         listContent.querySelectorAll(".delete-btn").forEach(btn => {
             btn.addEventListener("click", async (e) => {
+                e.stopPropagation();
                 const taskId = (e.currentTarget as HTMLElement).dataset.id;
                 if (taskId) {
                     await this.store.removeTask(taskId);
@@ -78,48 +81,63 @@ export class TaskList {
                 }
             });
         });
-    }
 
-    private getPriorityLabel(priority: string) {
-        switch (priority) {
-            case "high": return "高";
-            case "medium": return "中";
-            case "low": return "低";
-            default: return priority;
-        }
+        // Bind edit events
+        listContent.querySelectorAll(".edit-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const taskId = (e.currentTarget as HTMLElement).dataset.id;
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    this.showEditTaskDialog(task);
+                }
+            });
+        });
     }
 
     private bindEvents() {
         this.container.querySelector("#addTaskBtn")?.addEventListener("click", () => {
-            this.showAddTaskDialog();
+            this.showTaskDialog();
         });
     }
 
-    private showAddTaskDialog() {
+    private showTaskDialog(task?: ITask) {
+        const isEdit = !!task;
+        const startTime = task ? dayjs(task.startTime) : dayjs();
+        const endTime = task ? dayjs(task.endTime) : dayjs().add(1, 'hour');
+
         const dialog = new Dialog({
-            title: "添加新任务",
+            title: isEdit ? "编辑任务" : "添加新任务",
             content: `
                 <div class="b3-dialog__content">
                     <div class="fn__flex-column" style="gap: 12px;">
-                        <div class="fn__flex-column">
-                            <label class="fn__flex" style="margin-bottom: 4px;">任务内容</label>
-                            <input type="text" id="dialogTaskContent" class="b3-text-field" placeholder="输入任务内容..." />
+                        <div class="fn__flex" style="align-items: center;">
+                            <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">内容</label>
+                            <input type="text" id="dialogTaskContent" class="b3-text-field fn__flex-1" placeholder="输入任务内容..." value="${task ? task.content : ''}" />
                         </div>
-                        <div class="fn__flex-column">
-                            <label class="fn__flex" style="margin-bottom: 4px;">开始时间</label>
-                            <input type="datetime-local" id="dialogTaskStart" class="b3-text-field" value="${dayjs().format('YYYY-MM-DDTHH:mm')}" />
+                        <div class="fn__flex" style="align-items: center;">
+                            <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">开始</label>
+                            <div class="fn__flex fn__flex-1" style="gap: 8px;">
+                                <input type="date" id="dialogStartDate" class="b3-text-field fn__flex-1" value="${startTime.format('YYYY-MM-DD')}" />
+                                <select id="dialogStartTime" class="b3-select fn__flex-1">
+                                    ${this.generateTimeOptions(startTime.format('HH:mm'))}
+                                </select>
+                            </div>
                         </div>
-                        <div class="fn__flex-column">
-                            <label class="fn__flex" style="margin-bottom: 4px;">结束时间</label>
-                            <input type="datetime-local" id="dialogTaskEnd" class="b3-text-field" value="${dayjs().add(1, 'hour').format('YYYY-MM-DDTHH:mm')}" />
+                        <div class="fn__flex" style="align-items: center;">
+                            <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">结束</label>
+                            <div class="fn__flex fn__flex-1" style="gap: 8px;">
+                                <input type="date" id="dialogEndDate" class="b3-text-field fn__flex-1" value="${endTime.format('YYYY-MM-DD')}" />
+                                <select id="dialogEndTime" class="b3-select fn__flex-1">
+                                    ${this.generateTimeOptions(endTime.format('HH:mm'))}
+                                </select>
+                            </div>
                         </div>
-                        <div class="fn__flex-column">
-                            <label class="fn__flex" style="margin-bottom: 4px;">优先级</label>
-                            <select id="dialogTaskPriority" class="b3-select">
-                                <option value="high">高</option>
-                                <option value="medium" selected>中</option>
-                                <option value="low">低</option>
-                            </select>
+                        <div class="fn__flex" style="align-items: center;">
+                            <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">全天</label>
+                            <div class="fn__flex-1 fn__flex" style="justify-content: flex-end;">
+                                <input type="checkbox" id="dialogAllDay" class="b3-switch" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -132,9 +150,18 @@ export class TaskList {
         });
 
         const contentInput = dialog.element.querySelector("#dialogTaskContent") as HTMLInputElement;
-        const startInput = dialog.element.querySelector("#dialogTaskStart") as HTMLInputElement;
-        const endInput = dialog.element.querySelector("#dialogTaskEnd") as HTMLInputElement;
-        const priorityInput = dialog.element.querySelector("#dialogTaskPriority") as HTMLSelectElement;
+        const startDateInput = dialog.element.querySelector("#dialogStartDate") as HTMLInputElement;
+        const startTimeInput = dialog.element.querySelector("#dialogStartTime") as HTMLSelectElement;
+        const endDateInput = dialog.element.querySelector("#dialogEndDate") as HTMLInputElement;
+        const endTimeInput = dialog.element.querySelector("#dialogEndTime") as HTMLSelectElement;
+        const allDayInput = dialog.element.querySelector("#dialogAllDay") as HTMLInputElement;
+
+        // Toggle time inputs when All Day is checked
+        allDayInput.addEventListener("change", () => {
+            const isAllDay = allDayInput.checked;
+            startTimeInput.disabled = isAllDay;
+            endTimeInput.disabled = isAllDay;
+        });
 
         dialog.element.querySelector("#dialogCancel")?.addEventListener("click", () => {
             dialog.destroy();
@@ -142,28 +169,57 @@ export class TaskList {
 
         dialog.element.querySelector("#dialogConfirm")?.addEventListener("click", async () => {
             const content = contentInput.value;
-            const startVal = startInput.value;
-            const endVal = endInput.value;
-            const priority = priorityInput.value as any;
+            const startDate = startDateInput.value;
+            const startTime = startTimeInput.value;
+            const endDate = endDateInput.value;
+            const endTime = endTimeInput.value;
+            const isAllDay = allDayInput.checked;
 
-            if (!content || !startVal || !endVal) {
-                // simple validation
+            if (!content || !startDate || !endDate) {
                 return;
             }
 
+            let startDateTime = dayjs(`${startDate} ${isAllDay ? '00:00' : startTime}`);
+            let endDateTime = dayjs(`${endDate} ${isAllDay ? '23:59' : endTime}`);
+
             const newTask: ITask = {
-                id: Date.now().toString(),
+                id: task ? task.id : Date.now().toString(),
                 content,
-                startTime: dayjs(startVal).valueOf(),
-                endTime: dayjs(endVal).valueOf(),
-                priority,
-                createdAt: Date.now()
+                startTime: startDateTime.valueOf(),
+                endTime: endDateTime.valueOf(),
+                createdAt: task ? task.createdAt : Date.now()
             };
 
-            await this.store.addTask(newTask);
+            if (isEdit) {
+                await this.store.updateTask(newTask);
+            } else {
+                await this.store.addTask(newTask);
+            }
+            
             this.renderTasks();
             this.onTaskUpdate();
             dialog.destroy();
         });
+    }
+
+    private generateTimeOptions(selectedTime: string): string {
+        const options: string[] = [];
+        for (let h = 0; h < 24; h++) {
+            for (let m = 0; m < 60; m += 30) {
+                const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                options.push(time);
+            }
+        }
+        // Ensure selectedTime is in options, if not add it
+        if (!options.includes(selectedTime)) {
+            options.push(selectedTime);
+            options.sort();
+        }
+        
+        return options.map(t => `<option value="${t}" ${t === selectedTime ? 'selected' : ''}>${t}</option>`).join('');
+    }
+
+    private showEditTaskDialog(task: ITask) {
+        this.showTaskDialog(task);
     }
 }

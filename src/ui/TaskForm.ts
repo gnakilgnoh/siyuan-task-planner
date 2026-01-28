@@ -29,14 +29,6 @@ export class TaskForm {
                     <label>结束时间</label>
                     <input type="datetime-local" id="taskEnd" class="b3-text-field" />
                 </div>
-                <div class="form-group">
-                    <label>优先级</label>
-                    <select id="taskPriority" class="b3-select">
-                        <option value="high">高</option>
-                        <option value="medium" selected>中</option>
-                        <option value="low">低</option>
-                    </select>
-                </div>
                 <button id="addTaskBtn" class="b3-button">添加任务</button>
             </div>
         `;
@@ -50,7 +42,6 @@ export class TaskForm {
             const content = (this.container.querySelector("#taskContent") as HTMLInputElement).value;
             const startVal = (this.container.querySelector("#taskStart") as HTMLInputElement).value;
             const endVal = (this.container.querySelector("#taskEnd") as HTMLInputElement).value;
-            const priority = (this.container.querySelector("#taskPriority") as HTMLSelectElement).value as any;
 
             if (!content || !startVal || !endVal) {
                 // simple validation
@@ -63,7 +54,6 @@ export class TaskForm {
                 content,
                 startTime: dayjs(startVal).valueOf(),
                 endTime: dayjs(endVal).valueOf(),
-                priority,
                 createdAt: Date.now()
             };
 

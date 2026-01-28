@@ -62,14 +62,6 @@
                     background-color: var(--b3-theme-background-light);
                     transition: background-color 0.2s;
 
-                    &:hover {
-                        background-color: var(--b3-theme-background);
-                        
-                        .delete-btn {
-                            opacity: 1;
-                        }
-                    }
-
                     .task-info {
                         flex: 1;
                         overflow: hidden;
@@ -89,15 +81,6 @@
                             font-size: 12px;
                             gap: 8px;
 
-                            .task-priority {
-                                padding: 2px 4px;
-                                border-radius: 2px;
-                                
-                                &.priority-high { color: var(--b3-theme-error); background-color: rgba(var(--b3-theme-error-rgb), 0.1); }
-                                &.priority-medium { color: var(--b3-theme-primary); background-color: rgba(var(--b3-theme-primary-rgb), 0.1); }
-                                &.priority-low { color: var(--b3-theme-secondary); background-color: rgba(var(--b3-theme-secondary-rgb), 0.1); }
-                            }
-
                             .task-date {
                                 color: var(--b3-theme-on-surface-light);
                             }
@@ -106,21 +89,41 @@
 
                     .task-actions {
                         margin-left: 8px;
+                        display: flex;
+                        gap: 4px;
 
-                        .delete-btn {
-                            opacity: 0;
-                            transition: opacity 0.2s;
+                        .delete-btn, .edit-btn {
+                            opacity: 1; /* Force visible for debugging/usability */
                             padding: 4px;
                             color: var(--b3-theme-on-surface-light);
                             
                             &:hover {
-                                color: var(--b3-theme-error);
+                                color: var(--b3-theme-primary);
+                                background-color: transparent; /* Prevent default button background */
+                            }
+                            
+                            svg {
+                                width: 14px;
+                                height: 14px;
                             }
                         }
+
+                        .delete-btn:hover {
+                            color: var(--b3-theme-error);
+                        }
                     }
-                }
+                    
+                    &:hover {
+                        background-color: var(--b3-theme-background);
+                        
+                        .delete-btn, .edit-btn {
+                            opacity: 1;
+                        }
+                    }
             }
         }
+    }
+
     }
 
     .task-planner-main {
@@ -246,20 +249,8 @@
                             color: #fff;
                             z-index: 1;
                             
-                            &.task-priority-high {
-                                background-color: var(--b3-theme-error);
-                                border-left: 3px solid darken(#d23f31, 10%);
-                            }
-
-                            &.task-priority-medium {
-                                background-color: var(--b3-theme-primary);
-                                border-left: 3px solid darken(#4285f4, 10%);
-                            }
-
-                            &.task-priority-low {
-                                background-color: var(--b3-theme-secondary);
-                                border-left: 3px solid darken(#616161, 10%);
-                            }
+                            background-color: var(--b3-theme-primary);
+                            border-left: 3px solid var(--b3-theme-primary-light);
 
                             &.continues-left {
                                 border-top-left-radius: 0;
