@@ -135,7 +135,16 @@
 
     }
 
-.task-planner-calendar {
+.task-planner-main {
+        flex: 1;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .task-planner-calendar {
     display: flex;
     flex-direction: column;
     height: 100%;

@@ -158,8 +158,7 @@ export class CalendarView {
             const taskStart = dayjs(task.startTime).startOf('day');
             
             let realTaskEnd = dayjs(task.endTime);
-            // If end time is 00:00 (ignoring seconds/ms), treat as end of previous day
-            if (realTaskEnd.format('HH:mm') === '00:00') {
+            if (realTaskEnd.hour() === 0) {
                 if (realTaskEnd.isAfter(dayjs(task.startTime))) {
                     realTaskEnd = realTaskEnd.subtract(1, 'minute');
                 }
@@ -185,7 +184,7 @@ export class CalendarView {
             const taskStart = dayjs(task.startTime).startOf('day');
             
             let realTaskEnd = dayjs(task.endTime);
-            if (realTaskEnd.format('HH:mm') === '00:00') {
+            if (realTaskEnd.hour() === 0) {
                 if (realTaskEnd.isAfter(dayjs(task.startTime))) {
                     realTaskEnd = realTaskEnd.subtract(1, 'minute');
                 }
@@ -249,9 +248,13 @@ export class CalendarView {
                     // Visual adjustments for connections
                     if (isContLeft) {
                         taskEl.classList.add("continues-left");
+                        taskEl.style.borderTopLeftRadius = "0";
+                        taskEl.style.borderBottomLeftRadius = "0";
                     }
                     if (isContRight) {
                         taskEl.classList.add("continues-right");
+                        taskEl.style.borderTopRightRadius = "0";
+                        taskEl.style.borderBottomRightRadius = "0";
                     }
 
                     taskLayer.appendChild(taskEl);
