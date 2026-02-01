@@ -3,6 +3,7 @@ import isBetween from "dayjs/plugin/isBetween";
 import { Solar, HolidayUtil } from "lunar-javascript";
 import { ITask } from "../types";
 import { TaskStore } from "../services/TaskStore";
+import { Menu } from "siyuan";
 
 dayjs.extend(isBetween);
 
@@ -12,12 +13,27 @@ export class CalendarView {
     private currentMonth: dayjs.Dayjs;
     private isDatePickerOpen: boolean = false;
     private pickerYear: number;
+    private onEditTask?: (task: ITask) => void;
+    private onTaskClick?: (taskId: string) => void;
+    private onRangeSelect?: (start: dayjs.Dayjs, end: dayjs.Dayjs) => void;
 
     constructor(container: HTMLElement, store: TaskStore) {
         this.container = container;
         this.store = store;
         this.currentMonth = dayjs();
         this.pickerYear = this.currentMonth.year();
+    }
+
+    public setOnEditHandler(handler: (task: ITask) => void) {
+        this.onEditTask = handler;
+    }
+
+    public setOnTaskClickHandler(handler: (taskId: string) => void) {
+        this.onTaskClick = handler;
+    }
+
+    public setOnRangeSelectHandler(handler: (start: dayjs.Dayjs, end: dayjs.Dayjs) => void) {
+        this.onRangeSelect = handler;
     }
 
     render() {
@@ -109,6 +125,7 @@ export class CalendarView {
             const date = weekStart.add(i, "day");
             const cell = document.createElement("div");
             cell.className = "day-cell";
+            cell.dataset.date = date.format("YYYY-MM-DD");
             
             if (!date.isSame(this.currentMonth, "month")) {
                 cell.classList.add("other-month");
@@ -222,6 +239,7 @@ export class CalendarView {
                     // Create Task Element
                     const taskEl = document.createElement("div");
                     taskEl.className = `task-bar`;
+                    taskEl.dataset.taskId = task.id;
                     
                     const isContLeft = taskStart.isBefore(weekStart);
                     const isContRight = taskEnd.isAfter(weekEnd);
@@ -237,13 +255,23 @@ export class CalendarView {
                     taskEl.style.top = `${rowIndex * 24 + 36}px`;
 
                     // Logic to visually end in the correct cell:
-                    const marginLeft = isContLeft ? 0 : 2;
+                    const marginLeft = isContLeft ? 0 : 5;
                     // Significantly increase right margin for end of task to match TickTick style
-                    const marginRight = isContRight ? 0 : 12; 
+                    const marginRight = isContRight ? 0 : 5; 
                     const totalMargin = marginLeft + marginRight;
                     
                     taskEl.style.left = `calc(${leftPercent}% + ${marginLeft}px)`;
                     taskEl.style.width = `calc(${widthPercent}% - ${totalMargin}px)`;
+
+                    // Click to highlight
+                    taskEl.addEventListener("click", (e) => {
+                        // Highlight self
+                        this.highlightTask(task.id);
+                        // Notify parent
+                        if (this.onTaskClick) {
+                            this.onTaskClick(task.id);
+                        }
+                    });
 
                     // Visual adjustments for connections
                     if (isContLeft) {
@@ -256,6 +284,41 @@ export class CalendarView {
                         taskEl.style.borderTopRightRadius = "0";
                         taskEl.style.borderBottomRightRadius = "0";
                     }
+
+                    // Context Menu for Task Bar
+                    taskEl.addEventListener("contextmenu", (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Also highlight on right click
+                        this.highlightTask(task.id);
+                        if (this.onTaskClick) {
+                            this.onTaskClick(task.id);
+                        }
+                        
+                        const menu = new Menu("calendar-task-context-menu");
+                        menu.addItem({
+                            icon: "iconEdit",
+                            label: "编辑",
+                            click: () => {
+                                if (this.onEditTask) {
+                                    this.onEditTask(task);
+                                }
+                            }
+                        });
+                        menu.addItem({
+                            icon: "iconTrashcan",
+                            label: "删除",
+                            click: async () => {
+                                await this.store.removeTask(task.id);
+                                this.render();
+                            }
+                        });
+                        menu.open({
+                            x: e.clientX,
+                            y: e.clientY,
+                            isLeft: true,
+                        });
+                    });
 
                     taskLayer.appendChild(taskEl);
                     break;
@@ -353,9 +416,11 @@ export class CalendarView {
                 this.render();
             });
         });
+
+        this.initDragSelection();
     }
 
-    private updateDatePicker() {
+    updateDatePicker() {
         // Targeted update for picker content to avoid full re-render
         const yearEl = this.container.querySelector(".picker-year");
         if (yearEl) yearEl.textContent = `${this.pickerYear}年`;
@@ -378,5 +443,130 @@ export class CalendarView {
                 });
             });
         }
+    }
+
+    private initDragSelection() {
+        const weeksContainer = this.container.querySelector("#calendarWeeks");
+        if (!weeksContainer) return;
+
+        let isDragging = false;
+        let startCell: HTMLElement | null = null;
+        let currentCell: HTMLElement | null = null;
+
+        const onMouseMove = (e: MouseEvent) => {
+            if (!isDragging || !startCell) return;
+            const cell = (e.target as HTMLElement).closest(".day-cell") as HTMLElement;
+            if (cell && weeksContainer.contains(cell) && cell !== currentCell) {
+                currentCell = cell;
+                this.updateSelection(startCell, currentCell);
+            }
+        };
+
+        const onMouseUp = (e: MouseEvent) => {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            document.removeEventListener("mousemove", onMouseMove);
+            document.removeEventListener("mouseup", onMouseUp);
+
+            if (!startCell || !currentCell) return;
+            
+            const startDateStr = startCell.dataset.date;
+            const endDateStr = currentCell.dataset.date;
+            
+            if (startDateStr && endDateStr) {
+                let startDate = dayjs(startDateStr);
+                let endDate = dayjs(endDateStr);
+                
+                if (startDate.isAfter(endDate)) {
+                    [startDate, endDate] = [endDate, startDate];
+                }
+                
+                if (this.onRangeSelect) {
+                    this.onRangeSelect(startDate, endDate.endOf('day'));
+                }
+            }
+            
+            this.clearSelection();
+            startCell = null;
+            currentCell = null;
+        };
+
+        weeksContainer.addEventListener("mousedown", (e) => {
+            if ((e as MouseEvent).button !== 0) return;
+
+            const target = e.target as HTMLElement;
+            const cell = target.closest(".day-cell") as HTMLElement;
+            
+            if (target.closest(".task-bar") || target.closest(".holiday-badge")) return;
+            
+            // Check if any task is currently highlighted
+            if (this.container.querySelector(".task-bar-highlight")) {
+                return;
+            }
+            
+            if (cell) {
+                isDragging = true;
+                startCell = cell;
+                currentCell = cell;
+                this.updateSelection(startCell, currentCell);
+                
+                document.addEventListener("mousemove", onMouseMove);
+                document.addEventListener("mouseup", onMouseUp);
+                
+                e.preventDefault();
+            }
+        });
+    }
+
+    private updateSelection(start: HTMLElement, end: HTMLElement) {
+        const startDateStr = start.dataset.date;
+        const endDateStr = end.dataset.date;
+        if (!startDateStr || !endDateStr) return;
+
+        let startDate = dayjs(startDateStr);
+        let endDate = dayjs(endDateStr);
+
+        if (startDate.isAfter(endDate)) {
+            [startDate, endDate] = [endDate, startDate];
+        }
+
+        const cells = this.container.querySelectorAll(".day-cell");
+        cells.forEach(cell => {
+            const cellDateStr = (cell as HTMLElement).dataset.date;
+            if (cellDateStr) {
+                const cellDate = dayjs(cellDateStr);
+                if (cellDate.isBetween(startDate, endDate, 'day', '[]')) {
+                    cell.classList.add("drag-selected");
+                } else {
+                    cell.classList.remove("drag-selected");
+                }
+            }
+        });
+    }
+
+    private clearSelection() {
+        this.container.querySelectorAll(".day-cell.drag-selected").forEach(cell => {
+            cell.classList.remove("drag-selected");
+        });
+    }
+
+    public highlightTask(taskId: string) {
+        // Remove existing highlights
+        this.clearHighlight();
+
+        // Add highlight to matching tasks
+        const taskEls = this.container.querySelectorAll(`.task-bar[data-task-id="${taskId}"]`);
+        taskEls.forEach(el => {
+            el.classList.add("task-bar-highlight");
+            // Ensure the element is visible (optional, but good for UX)
+            // el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+
+    public clearHighlight() {
+        this.container.querySelectorAll(".task-bar-highlight").forEach(el => {
+            el.classList.remove("task-bar-highlight");
+        });
     }
 }

@@ -45,6 +45,20 @@ export class TaskStore {
         }
     }
 
+    async updateTasks(updatedTasks: ITask[]) {
+        let changed = false;
+        updatedTasks.forEach(updatedTask => {
+            const index = this.tasks.findIndex(t => t.id === updatedTask.id);
+            if (index !== -1) {
+                this.tasks[index] = updatedTask;
+                changed = true;
+            }
+        });
+        if (changed) {
+            await this.save();
+        }
+    }
+
     async removeTask(taskId: string) {
         this.tasks = this.tasks.filter(t => t.id !== taskId);
         await this.save();

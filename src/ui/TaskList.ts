@@ -8,11 +8,13 @@ export class TaskList {
     private container: HTMLElement;
     private store: TaskStore;
     private onTaskUpdate: () => void;
+    private onTaskClick?: (taskId: string | null) => void;
 
-    constructor(container: HTMLElement, store: TaskStore, onTaskUpdate: () => void) {
+    constructor(container: HTMLElement, store: TaskStore, onTaskUpdate: () => void, onTaskClick?: (taskId: string | null) => void) {
         this.container = container;
         this.store = store;
         this.onTaskUpdate = onTaskUpdate;
+        this.onTaskClick = onTaskClick;
     }
 
     render() {
@@ -39,8 +41,26 @@ export class TaskList {
         if (!listContent) return;
 
         const tasks = this.store.getTasks();
-        // Sort by start time desc
-        tasks.sort((a, b) => b.startTime - a.startTime);
+        // Sort tasks: 
+        // 1. Tasks with priority first
+        // 2. Higher priority value first (descending)
+        // 3. Start time descending (as fallback)
+        tasks.sort((a, b) => {
+            const hasPriorityA = a.priority !== undefined;
+            const hasPriorityB = b.priority !== undefined;
+
+            if (hasPriorityA && !hasPriorityB) return -1;
+            if (!hasPriorityA && hasPriorityB) return 1;
+
+            if (hasPriorityA && hasPriorityB) {
+                // Both have priority, sort by priority asc (1 is highest)
+                const priorityDiff = (a.priority as number) - (b.priority as number);
+                if (priorityDiff !== 0) return priorityDiff;
+            }
+
+            // Fallback to start time desc
+            return b.startTime - a.startTime;
+        });
 
         if (tasks.length === 0) {
             listContent.innerHTML = `<div class="empty-state">暂无任务</div>`;
@@ -51,18 +71,38 @@ export class TaskList {
         tasks.forEach(task => {
             const item = document.createElement("div");
             item.className = "task-list-item";
+            item.dataset.taskId = task.id;
             item.innerHTML = `
                 <div class="task-info">
                     <div class="task-title">${task.content}</div>
                     <div class="task-meta">
                         <span class="task-date">${dayjs(task.startTime).format("MM-DD HH:mm")}</span>
+                        ${task.priority !== undefined ? `<span class="task-priority" style="margin-left: 8px; color: var(--b3-theme-primary);">P${task.priority}</span>` : ''}
                     </div>
                 </div>
             `;
             
+            // Click to highlight
+            item.addEventListener("click", (e) => {
+                // Highlight self
+                this.highlightItem(task.id);
+                // Notify parent
+                if (this.onTaskClick) {
+                    this.onTaskClick(task.id);
+                }
+            });
+
             // Context Menu
             item.addEventListener("contextmenu", (e) => {
                 e.preventDefault();
+                e.stopPropagation();
+                
+                // Highlight on right click (bidirectional)
+                this.highlightItem(task.id);
+                if (this.onTaskClick) {
+                    this.onTaskClick(task.id);
+                }
+
                 const menu = new Menu("task-context-menu");
                 menu.addItem({
                     icon: "iconEdit",
@@ -97,10 +137,29 @@ export class TaskList {
         });
     }
 
-    private showTaskDialog(task?: ITask) {
+    public highlightItem(taskId: string) {
+        this.clearHighlight();
+        const item = this.container.querySelector(`.task-list-item[data-task-id="${taskId}"]`);
+        if (item) {
+            item.classList.add("selected");
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    public clearHighlight() {
+        this.container.querySelectorAll(".task-list-item.selected").forEach(el => {
+            el.classList.remove("selected");
+        });
+    }
+
+    public showEditTaskDialog(task: ITask) {
+        this.showTaskDialog(task);
+    }
+
+    public showTaskDialog(task?: ITask, initialDateRange?: { start: dayjs.Dayjs, end: dayjs.Dayjs }) {
         const isEdit = !!task;
-        const startTime = task ? dayjs(task.startTime) : dayjs();
-        const endTime = task ? dayjs(task.endTime) : dayjs().add(1, 'hour');
+        const startTime = task ? dayjs(task.startTime) : (initialDateRange ? initialDateRange.start : dayjs());
+        const endTime = task ? dayjs(task.endTime) : (initialDateRange ? initialDateRange.end : dayjs().add(1, 'hour'));
 
         const dialog = new Dialog({
             title: isEdit ? "编辑任务" : "添加新任务",
@@ -139,11 +198,15 @@ export class TaskList {
                                 <input type="checkbox" id="dialogAllDay" class="b3-switch" />
                             </div>
                         </div>
+                        <div class="fn__flex" style="align-items: center;">
+                            <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">优先级</label>
+                            <input type="number" id="dialogPriority" class="b3-text-field fn__flex-1" placeholder="无" min="1" value="${task && task.priority !== undefined ? task.priority : ''}" />
+                        </div>
                     </div>
                 </div>
                 <div class="b3-dialog__action">
-                    <button class="b3-button b3-button--cancel" id="dialogCancel">取消</button>
-                    <button class="b3-button b3-button--text" id="dialogConfirm">确定</button>
+                    <button class="b3-button ticktick-confirm-btn" id="dialogConfirm">确定</button>
+                    <button class="b3-button ticktick-cancel-btn" id="dialogCancel">取消</button>
                 </div>
             `,
             width: "400px",
@@ -155,6 +218,7 @@ export class TaskList {
         const endDateBtn = dialog.element.querySelector("#dialogEndDateBtn") as HTMLButtonElement;
         const endTimeInput = dialog.element.querySelector("#dialogEndTime") as HTMLSelectElement;
         const allDayInput = dialog.element.querySelector("#dialogAllDay") as HTMLInputElement;
+        const priorityInput = dialog.element.querySelector("#dialogPriority") as HTMLInputElement;
 
         // Variables to store selected dates
         let selectedStartDate = startTime.format('YYYY-MM-DD');
@@ -333,6 +397,17 @@ export class TaskList {
             endTimeInput.disabled = isAllDay;
         });
 
+        // Enforce priority >= 1
+        priorityInput.addEventListener("input", () => {
+            if (priorityInput.value === "") return;
+            const val = parseInt(priorityInput.value, 10);
+            if (isNaN(val) || val < 1) {
+                priorityInput.value = "";
+            } else if (priorityInput.value !== val.toString()) {
+                 priorityInput.value = val.toString();
+            }
+        });
+
         dialog.element.querySelector("#dialogCancel")?.addEventListener("click", () => {
             dialog.destroy();
         });
@@ -344,6 +419,13 @@ export class TaskList {
             const endDate = selectedEndDate;
             const endTime = endTimeInput.value;
             const isAllDay = allDayInput.checked;
+            
+            let priority: number | undefined;
+            if (priorityInput.value !== "") {
+                const parsed = parseInt(priorityInput.value, 10);
+                // Ensure priority is at least 1 if set
+                priority = isNaN(parsed) ? undefined : Math.max(1, parsed);
+            }
 
             if (!content || !startDate || !endDate) {
                 return;
@@ -357,18 +439,80 @@ export class TaskList {
                 content,
                 startTime: startDateTime.valueOf(),
                 endTime: endDateTime.valueOf(),
-                createdAt: task ? task.createdAt : Date.now()
+                createdAt: task ? task.createdAt : Date.now(),
+                priority
             };
 
-            if (isEdit) {
-                await this.store.updateTask(newTask);
-            } else {
-                await this.store.addTask(newTask);
+            const saveTask = async (taskToSave: ITask, shifts: ITask[] = []) => {
+                if (shifts.length > 0) {
+                     await this.store.updateTasks(shifts);
+                }
+                if (isEdit) {
+                    await this.store.updateTask(taskToSave);
+                } else {
+                    await this.store.addTask(taskToSave);
+                }
+                
+                this.renderTasks();
+                this.onTaskUpdate();
+                dialog.destroy();
+            };
+
+            // Check for priority conflict
+            if (priority !== undefined) {
+                 const existingTasks = this.store.getTasks().filter(t => t.priority !== undefined && t.id !== newTask.id);
+                 const conflict = existingTasks.find(t => t.priority === priority);
+                 
+                 if (conflict) {
+                     const confirmDialog = new Dialog({
+                         title: "优先级冲突",
+                         content: `<div class="b3-dialog__content">该优先级已存在！是否仍要添加？如是，该优先级将代替，后续任务优先级将顺延</div>
+                                   <div class="b3-dialog__action">
+                                       <button class="b3-button b3-button--cancel" id="confirmCancel">取消</button>
+                                       <button class="b3-button b3-button--text" id="confirmOk">确定</button>
+                                   </div>`,
+                         width: "400px"
+                     });
+                     
+                     confirmDialog.element.querySelector("#confirmCancel")?.addEventListener("click", () => {
+                         confirmDialog.destroy();
+                     });
+                     
+                     confirmDialog.element.querySelector("#confirmOk")?.addEventListener("click", async () => {
+                         confirmDialog.destroy();
+                         
+                         // Calculate shifts
+                         const shifts: ITask[] = [];
+                         let currentPriorityToCheck = priority!;
+                         
+                         // Sort existing tasks by priority ascending to process in order
+                         existingTasks.sort((a, b) => (a.priority!) - (b.priority!));
+                         
+                         // We need to iterate and shift tasks if they occupy the 'currentPriorityToCheck'
+                         // Since one shift can cause another, we continue as long as we find a conflict
+                         for (let i = 0; i < existingTasks.length; i++) {
+                             const t = existingTasks[i];
+                             if (t.priority === currentPriorityToCheck) {
+                                 // This task conflicts with what we just placed (or shifted into)
+                                 // So we must shift this task down (increment priority value)
+                                 const updated = { ...t, priority: t.priority! + 1 };
+                                 shifts.push(updated);
+                                 
+                                 // Now we need to check if this new position (t.priority + 1) is also taken
+                                 currentPriorityToCheck++; 
+                             } else if (t.priority! > currentPriorityToCheck) {
+                                 // Gap found, no more chain reaction needed
+                                 break;
+                             }
+                         }
+                         
+                         await saveTask(newTask, shifts);
+                     });
+                     return; // Wait for confirmation
+                 }
             }
-            
-            this.renderTasks();
-            this.onTaskUpdate();
-            dialog.destroy();
+
+            await saveTask(newTask);
         });
     }
 
@@ -387,9 +531,5 @@ export class TaskList {
         }
         
         return options.map(t => `<option value="${t}" ${t === selectedTime ? 'selected' : ''}>${t}</option>`).join('');
-    }
-
-    private showEditTaskDialog(task: ITask) {
-        this.showTaskDialog(task);
     }
 }

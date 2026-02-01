@@ -4,4 +4,5 @@ export interface ITask {
     startTime: number; // timestamp
     endTime: number;   // timestamp
     createdAt: number;
+    priority?: number;
 }

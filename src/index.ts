@@ -15,6 +15,7 @@ export default class TaskPlannerPlugin extends Plugin {
 
     private tab: any;
     private store: TaskStore;
+    private destroyCallback?: () => void;
 
     async onload() {
         // 初始化数据存储
@@ -52,7 +53,54 @@ export default class TaskPlannerPlugin extends Plugin {
                     const taskList = new TaskList(listContainer as HTMLElement, self.store, () => {
                         // 任务更新后的回调：刷新日历
                         calendarView.render();
+                    }, (taskId) => {
+                        // 任务点击回调：高亮日历中的任务
+                        if (taskId) {
+                            calendarView.highlightTask(taskId);
+                            taskList.highlightItem(taskId);
+                        } else {
+                            calendarView.clearHighlight();
+                            taskList.clearHighlight();
+                        }
                     });
+                    
+                    // 设置日历视图的编辑处理程序，调用任务列表的弹窗
+                    calendarView.setOnEditHandler((task) => {
+                        taskList.showEditTaskDialog(task);
+                    });
+
+                    calendarView.setOnTaskClickHandler((taskId) => {
+                        taskList.highlightItem(taskId);
+                        calendarView.highlightTask(taskId);
+                    });
+
+                    calendarView.setOnRangeSelectHandler((start, end) => {
+                        taskList.showTaskDialog(undefined, { start, end });
+                    });
+
+                    // Global click listener for clearing highlights (on document to catch outside clicks)
+                    const clearHighlightListener = (e: MouseEvent) => {
+                        // Check if container is still in DOM (safety check)
+                        if (!document.body.contains(container)) return;
+
+                        const target = e.target as HTMLElement;
+                        const isTaskItem = target.closest(".task-list-item");
+                        const isTaskBar = target.closest(".task-bar");
+                        const isMenu = target.closest(".b3-menu");
+                        const isDialog = target.closest(".b3-dialog");
+                        const isDatePicker = target.closest(".date-picker-popup") || target.closest(".current-date-wrapper");
+                        
+                        // If clicked outside of task items, task bars, menus, dialogs, and date picker -> clear highlight
+                        if (!isTaskItem && !isTaskBar && !isMenu && !isDialog && !isDatePicker) {
+                            calendarView.clearHighlight();
+                            taskList.clearHighlight();
+                        }
+                    };
+
+                    document.addEventListener("click", clearHighlightListener);
+                    // @ts-ignore
+                    this.clearHighlightListener = clearHighlightListener;
+
                     taskList.render();
                 } else {
                     console.error("Failed to find containers for task planner");
@@ -61,6 +109,11 @@ export default class TaskPlannerPlugin extends Plugin {
             beforeDestroy() {
             },
             destroy() {
+                // @ts-ignore
+                if (this.clearHighlightListener) {
+                    // @ts-ignore
+                    document.removeEventListener("click", this.clearHighlightListener);
+                }
             }
         });
 

@@ -12,7 +12,16 @@
         flex: 1;
         height: 100%;
         overflow: hidden;
+        // Task Highlight Animation
+    .task-bar-highlight {
+        // Use TickTick style deep blue
+        background-color: #617fde !important;
+        color: #fff !important;
+        z-index: 10 !important;
+        transition: background-color 0.2s ease;
+        filter: none !important;
     }
+}
 
     .task-planner-sidebar {
         width: 300px;
@@ -127,6 +136,26 @@
                         
                         .delete-btn, .edit-btn {
                             opacity: 1;
+                        }
+                    }
+
+                    // Selected State
+                    &.selected {
+                        background-color: #617fde !important; // TickTick Blue
+                        
+                        .task-title, .task-date {
+                            color: #fff !important;
+                        }
+
+                        .task-actions {
+                            .delete-btn, .edit-btn {
+                                color: rgba(255, 255, 255, 0.8) !important;
+                                
+                                &:hover {
+                                    background-color: rgba(255, 255, 255, 0.2) !important;
+                                    color: #fff !important;
+                                }
+                            }
                         }
                     }
             }
@@ -337,6 +366,10 @@
                         }
                     }
 
+                    &.drag-selected {
+                        background-color: var(--b3-theme-surface-lighter) !important;
+                    }
+
                     .holiday-badge {
                         display: inline-flex;
                         align-items: center;
@@ -372,6 +405,7 @@
                     height: 20px; // Slightly shorter (was 22px)
                     line-height: 20px;
                     padding: 0 8px;
+                    box-sizing: border-box; // Ensure padding is included in width calculation
                     font-size: 12px;
                     border-radius: 4px; // Rounded corners
                     white-space: nowrap;
@@ -380,10 +414,10 @@
                     cursor: pointer;
                     pointer-events: auto;
                     // box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                    color: #fff;
+                    color: var(--b3-theme-on-background);
                     z-index: 1;
                     
-                    background-color: #617fde; // TickTick Blue
+                    background-color: rgba(97, 127, 222, 0.2); // TickTick Blue with opacity
                     border: none; // Remove border
                     // border-left: 3px solid var(--b3-theme-primary-light);
 
@@ -410,4 +444,33 @@
         }
     }
 }
+}
+
+// TickTick style dialog buttons
+.ticktick-confirm-btn {
+    background-color: #617fde !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 6px 16px !important;
+    font-weight: 500 !important;
+    
+    &:hover {
+        opacity: 0.9;
+        box-shadow: 0 2px 4px rgba(97, 127, 222, 0.3);
+    }
+}
+
+.ticktick-cancel-btn {
+    background-color: #fff !important;
+    color: var(--b3-theme-on-surface-light) !important;
+    border: 1px solid var(--b3-theme-surface-lighter) !important;
+    border-radius: 4px !important;
+    padding: 6px 16px !important;
+    margin-left: 10px !important;
+    
+    &:hover {
+        background-color: var(--b3-theme-surface-lighter) !important;
+        color: var(--b3-theme-on-background) !important;
+    }
 }
