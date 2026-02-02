@@ -1,3 +1,5 @@
+[中文](./README.md)
+
 # Task Planner
 
 This is a plug-in designed for Siyuan Notes: Task Planner.
