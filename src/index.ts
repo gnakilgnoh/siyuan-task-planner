@@ -47,6 +47,8 @@ export default class TaskPlannerPlugin extends Plugin {
                 const calendarContainer = container.querySelector("#calendarContainer");
                 
                 if (listContainer && calendarContainer) {
+                    let currentSelectedTaskId: string | null = null;
+
                     const calendarView = new CalendarView(calendarContainer as HTMLElement, self.store);
                     calendarView.render();
     
@@ -56,9 +58,11 @@ export default class TaskPlannerPlugin extends Plugin {
                     }, (taskId) => {
                         // 任务点击回调：高亮日历中的任务
                         if (taskId) {
+                            currentSelectedTaskId = taskId;
                             calendarView.highlightTask(taskId);
                             taskList.highlightItem(taskId);
                         } else {
+                            currentSelectedTaskId = null;
                             calendarView.clearHighlight();
                             taskList.clearHighlight();
                         }
@@ -70,6 +74,7 @@ export default class TaskPlannerPlugin extends Plugin {
                     });
 
                     calendarView.setOnTaskClickHandler((taskId) => {
+                        currentSelectedTaskId = taskId;
                         taskList.highlightItem(taskId);
                         calendarView.highlightTask(taskId);
                     });
@@ -85,21 +90,45 @@ export default class TaskPlannerPlugin extends Plugin {
 
                         const target = e.target as HTMLElement;
                         const isTaskItem = target.closest(".task-list-item");
-                        const isTaskBar = target.closest(".task-bar");
+                        const isTaskBar = target.closest(".task-bar") || target.closest(".week-task-block") || target.closest(".all-day-task-bar");
                         const isMenu = target.closest(".b3-menu");
                         const isDialog = target.closest(".b3-dialog");
                         const isDatePicker = target.closest(".date-picker-popup") || target.closest(".current-date-wrapper");
                         
                         // If clicked outside of task items, task bars, menus, dialogs, and date picker -> clear highlight
                         if (!isTaskItem && !isTaskBar && !isMenu && !isDialog && !isDatePicker) {
+                            currentSelectedTaskId = null;
                             calendarView.clearHighlight();
                             taskList.clearHighlight();
                         }
                     };
 
+                    const keyDownListener = async (e: KeyboardEvent) => {
+                        if (!document.body.contains(container)) return;
+                        
+                        if (e.key === "Delete" || e.key === "Backspace") {
+                            const target = e.target as HTMLElement;
+                            if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+                                return;
+                            }
+
+                            if (currentSelectedTaskId) {
+                                await self.store.removeTask(currentSelectedTaskId);
+                                currentSelectedTaskId = null;
+                                calendarView.render();
+                                calendarView.clearHighlight();
+                                taskList.render();
+                                taskList.clearHighlight();
+                            }
+                        }
+                    };
+
                     document.addEventListener("click", clearHighlightListener);
+                    document.addEventListener("keydown", keyDownListener);
                     // @ts-ignore
                     this.clearHighlightListener = clearHighlightListener;
+                    // @ts-ignore
+                    this.keyDownListener = keyDownListener;
 
                     taskList.render();
                 } else {
@@ -113,6 +142,11 @@ export default class TaskPlannerPlugin extends Plugin {
                 if (this.clearHighlightListener) {
                     // @ts-ignore
                     document.removeEventListener("click", this.clearHighlightListener);
+                }
+                // @ts-ignore
+                if (this.keyDownListener) {
+                    // @ts-ignore
+                    document.removeEventListener("keydown", this.keyDownListener);
                 }
             }
         });

@@ -220,6 +220,13 @@ export class TaskList {
         const allDayInput = dialog.element.querySelector("#dialogAllDay") as HTMLInputElement;
         const priorityInput = dialog.element.querySelector("#dialogPriority") as HTMLInputElement;
 
+        // Initialize All Day state
+        if (task && task.allDay) {
+            allDayInput.checked = true;
+            startTimeInput.disabled = true;
+            endTimeInput.disabled = true;
+        }
+
         // Variables to store selected dates
         let selectedStartDate = startTime.format('YYYY-MM-DD');
         let selectedEndDate = endTime.format('YYYY-MM-DD');
@@ -440,7 +447,8 @@ export class TaskList {
                 startTime: startDateTime.valueOf(),
                 endTime: endDateTime.valueOf(),
                 createdAt: task ? task.createdAt : Date.now(),
-                priority
+                priority,
+                allDay: isAllDay
             };
 
             const saveTask = async (taskToSave: ITask, shifts: ITask[] = []) => {

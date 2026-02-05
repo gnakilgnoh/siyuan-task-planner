@@ -5,4 +5,5 @@ export interface ITask {
     endTime: number;   // timestamp
     createdAt: number;
     priority?: number;
+    allDay?: boolean;
 }

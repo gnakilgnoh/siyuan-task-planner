@@ -179,6 +179,19 @@
     height: 100%;
     background-color: var(--b3-theme-background);
 
+    /* Hide scrollbar for WebKit browsers */
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--b3-theme-surface-lighter);
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
     .calendar-header {
         display: flex;
         align-items: center;
@@ -279,39 +292,78 @@
             }
         }
 
-        .date-navigation {
+        .ticktick-view-switcher {
             display: flex;
             align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background-color: transparent;
+            border: 1px solid var(--b3-theme-surface-lighter);
+            border-radius: 6px;
+            color: var(--b3-theme-on-background);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            outline: none;
+            height: 32px;
+            box-sizing: border-box;
+
+            &:hover {
+                border-color: #617fde; // Hover blue border
+                color: #617fde;
+            }
+
+            svg {
+                width: 10px;
+                height: 10px;
+                fill: currentColor;
+                opacity: 0.7;
+            }
+        }
+
+        .ticktick-nav-group {
+            display: flex;
+            align-items: center;
+            background-color: transparent;
             border: 1px solid var(--b3-theme-surface-lighter);
             border-radius: 6px;
             overflow: hidden;
-            background-color: var(--b3-theme-surface);
+            margin-left: 12px;
+            height: 32px;
+            box-sizing: border-box;
 
             .nav-btn {
                 background: transparent;
                 border: none;
-                padding: 0 8px;
+                padding: 0 10px;
                 cursor: pointer;
                 color: var(--b3-theme-on-surface-light);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                height: 28px;
+                height: 100%;
                 transition: all 0.2s;
                 outline: none;
+                border-right: 1px solid var(--b3-theme-surface-lighter);
+
+                &:last-child {
+                    border-right: none;
+                }
 
                 &:hover {
                     background-color: var(--b3-theme-background-light);
-                    color: var(--b3-theme-on-background);
+                    color: #617fde;
                 }
 
                 &.today-btn {
-                    padding: 0 12px;
-                    font-size: 13px;
-                    color: #617fde; // TickTick Blue
+                    padding: 0 16px;
+                    font-size: 14px;
                     font-weight: 500;
-                    border-left: 1px solid var(--b3-theme-surface-lighter);
-                    border-right: 1px solid var(--b3-theme-surface-lighter);
+                    color: var(--b3-theme-on-background);
+                    
+                    &:hover {
+                        color: #617fde;
+                    }
                 }
             }
         }
