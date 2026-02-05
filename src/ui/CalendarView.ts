@@ -114,7 +114,7 @@ export class CalendarView {
                 </div>
                 
                 ${this.viewMode === 'month' ? `
-                <div class="calendar-grid-header" style="border-bottom: none; padding-bottom: 8px; flex-shrink: 0;">
+                <div class="calendar-grid-header" style="border-bottom: 1px solid var(--b3-theme-surface-lighter); padding-bottom: 8px; flex-shrink: 0; margin-bottom: 0;">
                     <div>周日</div><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div>
                 </div>
                 <div class="calendar-weeks" id="calendarWeeks" style="overflow-y: auto; flex: 1;"></div>
@@ -318,10 +318,17 @@ export class CalendarView {
                 const festival = lunar.getFestivals()[0] || solar.getFestivals()[0] || lunar.getJieQi() || "";
                 const displayLunar = festival ? festival : lunar.getDayInChinese();
                 
+                let dayNumStyle = "font-size: 18px; font-weight: 600;";
+                if (isToday) {
+                    dayNumStyle += "color: var(--b3-theme-on-primary); background: var(--b3-theme-primary); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;";
+                } else {
+                    dayNumStyle += "color: var(--b3-theme-on-background);";
+                }
+
                 dayHeader.innerHTML = `
                     <div style="font-size: 12px; color: var(--b3-theme-on-surface-light); margin-bottom: 4px;">${dayNames[i]}</div>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-                        <span style="font-size: 18px; font-weight: 600; color: ${isToday ? 'var(--b3-theme-primary)' : 'var(--b3-theme-on-background)'}; ${isToday ? 'background: rgba(var(--b3-theme-primary-rgb), 0.1); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;' : ''}">${date.date()}</span>
+                        <span style="${dayNumStyle}">${date.date()}</span>
                         <span style="font-size: 10px; color: ${festival ? 'var(--b3-theme-primary)' : 'var(--b3-theme-on-surface-light)'};">${displayLunar}</span>
                     </div>
                 `;
@@ -762,15 +769,16 @@ export class CalendarView {
                     // Gap logic: similar to Month View
                     const isContLeft = taskStart.isBefore(startOfWeek);
                     const isContRight = taskEnd.isAfter(weekEnd);
-                    const marginLeft = isContLeft ? 0 : 5;
-                    const marginRight = isContRight ? 0 : 5;
+                    const marginLeft = 2; // Fixed 2px margin left
+                    const marginRight = 2; // Fixed 2px margin right
                     const totalMargin = marginLeft + marginRight;
 
                     taskEl.style.position = "absolute";
                     taskEl.style.top = `${rowIndex * 24 + 4}px`; // 4px padding top
-                    taskEl.style.height = "20px";
+                    taskEl.style.height = "18px";
                     taskEl.style.left = `calc(${leftPercent}% + ${marginLeft}px)`;
                     taskEl.style.width = `calc(${widthPercent}% - ${totalMargin}px)`;
+                    taskEl.style.boxSizing = "border-box";
                     
                     if (isContLeft) {
                         taskEl.style.borderTopLeftRadius = "0";
@@ -912,18 +920,20 @@ export class CalendarView {
 
                     taskEl.style.position = "absolute";
                     taskEl.style.top = `${top}px`;
-                    taskEl.style.height = `${height}px`;
+                    taskEl.style.height = `${height - 1}px`;
                     taskEl.style.left = "2px";
                     taskEl.style.right = "2px";
-                    taskEl.style.backgroundColor = "rgba(97, 127, 222, 0.8)";
-                    taskEl.style.color = "#fff";
+                    taskEl.style.boxSizing = "border-box";
+                    taskEl.style.backgroundColor = "rgba(97, 127, 222, 0.2)";
+                    taskEl.style.color = "var(--b3-theme-on-background)";
                     taskEl.style.borderRadius = "4px";
                     taskEl.style.padding = "2px 4px";
                     taskEl.style.fontSize = "12px";
                     taskEl.style.overflow = "hidden";
                     taskEl.style.cursor = "pointer";
                     taskEl.style.zIndex = "10";
-                    taskEl.style.boxShadow = "0 1px 3px rgba(0,0,0,0.2)";
+                    taskEl.style.boxShadow = "none";
+                    // taskEl.style.borderLeft = "3px solid #617fde";
 
                     // Resize Handle
                     const resizeHandle = document.createElement("div");
@@ -1068,10 +1078,15 @@ export class CalendarView {
                 holidayBadge = `<span class="holiday-badge ${isWork ? 'work' : 'rest'}">${isWork ? '班' : '休'}</span>`;
             }
 
+            let dayNumStyle = "font-size: 14px; font-weight: 500;";
+            if (date.isSame(dayjs(), "day")) {
+                dayNumStyle += "background-color: var(--b3-theme-primary); color: var(--b3-theme-on-primary); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;";
+            }
+
             cell.innerHTML = `
                 <div class="day-header" style="display: flex; justify-content: space-between; padding: 4px 8px;">
                     <div style="display: flex; align-items: center; gap: 2px;">
-                        <span class="day-num" style="font-size: 14px; font-weight: 500;">${date.date()}</span>
+                        <span class="day-num" style="${dayNumStyle}">${date.date()}</span>
                         ${holidayBadge}
                     </div>
                     <span class="day-lunar ${isFestival ? 'festival' : ''}" style="font-size: 10px; color: ${isFestival ? 'var(--b3-theme-primary)' : 'var(--b3-theme-on-surface-light)'};">${displayLunar}</span>
@@ -1171,6 +1186,8 @@ export class CalendarView {
                     const widthPercent = span * cellWidth;
                     
                     taskEl.style.top = `${rowIndex * 24 + 36}px`;
+                    taskEl.style.height = "18px";
+                    taskEl.style.boxSizing = "border-box";
 
                     // Logic to visually end in the correct cell:
                     const marginLeft = isContLeft ? 0 : 5;
@@ -1245,7 +1262,7 @@ export class CalendarView {
         // Adjust week height based on task rows
         const maxRow = taskSlots.length;
         const minHeight = 100; // px
-        const dynamicHeight = maxRow * 24 + 30; // buffer
+        const dynamicHeight = maxRow * 24 + 40; // buffer
         weekEl.style.minHeight = `${Math.max(minHeight, dynamicHeight)}px`;
 
         weekEl.appendChild(taskLayer);
