@@ -22,9 +22,14 @@ export class TaskList {
             <div class="task-list-view">
                 <div class="task-list-header">
                     <h3>任务列表</h3>
-                    <button id="addTaskBtn" class="b3-button b3-button--text" aria-label="添加任务">
-                        <svg><use xlink:href="#iconAdd"></use></svg>
-                    </button>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="updatePriorityBtn" class="b3-button b3-button--text" aria-label="更新优先级">
+                            <svg><use xlink:href="#iconSort"></use></svg>
+                        </button>
+                        <button id="addTaskBtn" class="b3-button b3-button--text" aria-label="添加任务">
+                            <svg><use xlink:href="#iconAdd"></use></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="task-list-content" id="taskListContent">
                     <!-- Tasks will be rendered here -->
@@ -135,6 +140,44 @@ export class TaskList {
         this.container.querySelector("#addTaskBtn")?.addEventListener("click", () => {
             this.showTaskDialog();
         });
+
+        this.container.querySelector("#updatePriorityBtn")?.addEventListener("click", () => {
+            this.updatePriorities();
+        });
+    }
+
+    private async updatePriorities() {
+        const tasks = this.store.getTasks();
+        
+        // Filter tasks with priority
+        const priorityTasks = tasks.filter(t => t.priority !== undefined);
+        
+        if (priorityTasks.length === 0) return;
+
+        // Sort tasks: Priority ASC, then StartTime DESC
+        priorityTasks.sort((a, b) => {
+            const priorityDiff = (a.priority as number) - (b.priority as number);
+            if (priorityDiff !== 0) return priorityDiff;
+            return b.startTime - a.startTime;
+        });
+
+        // Re-assign priorities sequentially starting from 1
+        const updatedTasks: ITask[] = [];
+        priorityTasks.forEach((task, index) => {
+            const newPriority = index + 1;
+            if (task.priority !== newPriority) {
+                updatedTasks.push({
+                    ...task,
+                    priority: newPriority
+                });
+            }
+        });
+
+        if (updatedTasks.length > 0) {
+            await this.store.updateTasks(updatedTasks);
+            this.renderTasks();
+            this.onTaskUpdate();
+        }
     }
 
     public highlightItem(taskId: string) {

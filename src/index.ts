@@ -79,6 +79,10 @@ export default class TaskPlannerPlugin extends Plugin {
                         calendarView.highlightTask(taskId);
                     });
 
+                    calendarView.setOnTaskUpdateHandler(() => {
+                        taskList.render();
+                    });
+
                     calendarView.setOnRangeSelectHandler((start, end) => {
                         taskList.showTaskDialog(undefined, { start, end });
                     });

@@ -27,6 +27,7 @@ export class CalendarView {
     private onEditTask?: (task: ITask) => void;
     private onTaskClick?: (taskId: string) => void;
     private onRangeSelect?: (start: dayjs.Dayjs, end: dayjs.Dayjs) => void;
+    private onTaskUpdate?: () => void; // New callback
 
     constructor(container: HTMLElement, store: TaskStore) {
         this.container = container;
@@ -45,6 +46,10 @@ export class CalendarView {
 
     public setOnRangeSelectHandler(handler: (start: dayjs.Dayjs, end: dayjs.Dayjs) => void) {
         this.onRangeSelect = handler;
+    }
+
+    public setOnTaskUpdateHandler(handler: () => void) {
+        this.onTaskUpdate = handler;
     }
 
     render() {
@@ -227,25 +232,48 @@ export class CalendarView {
     }
 
     private createCollapseButton(container: HTMLElement, type: "morning" | "evening") {
-        const collapseBtn = document.createElement("div");
-        collapseBtn.className = `collapse-${type}-btn`;
-        collapseBtn.draggable = true;
-        collapseBtn.style.position = "absolute";
-        collapseBtn.style.top = "-8px";
-        collapseBtn.style.left = "0";
-        collapseBtn.style.width = "100%";
-        collapseBtn.style.display = "flex";
-        collapseBtn.style.justifyContent = "center";
-        collapseBtn.style.cursor = "ns-resize"; // Change cursor to indicate resize/drag
-        collapseBtn.title = "点击折叠，拖拽调整范围";
+        const separator = document.createElement("div");
+        separator.className = `collapse-separator-${type}`;
+        separator.style.position = "absolute";
+        // Morning separator should be at the bottom of the slot (e.g. 7:00 slot ends at 8:00 if height is 50px? No.)
+        // Actually, the button is created inside the slot for "07:00".
+        // The slot for 07:00 starts at y=0 relative to itself.
+        // The grid line for 07:00 is at top. 
+        // User wants the separator BELOW the label "07:00".
+        // Label "07:00" is at top of the slot.
+        // So we should position separator slightly down.
+        separator.style.top = "20px"; // Push it down below the label
+        separator.style.left = "0";
+        separator.style.width = "100%";
+        separator.style.height = "1px";
+        separator.style.display = "flex";
+        separator.style.alignItems = "center";
+        separator.style.justifyContent = "center"; 
+        separator.style.zIndex = "5";
         
-        // Use consistent icon (Chevron Up) or vary it?
-        // Morning collapses upwards (0-7 hidden), button is at 7.
-        // Evening collapses downwards (20-24 hidden), button is at 20.
-        // Let's use generic collapse icon
-        collapseBtn.innerHTML = `<div style="background: var(--b3-theme-surface-lighter); border-radius: 4px; padding: 0 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"><svg style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z" fill="currentColor"></path></svg></div>`;
-        
-        collapseBtn.addEventListener("click", (e) => {
+        // The handle button
+        const btn = document.createElement("div");
+        btn.style.cursor = "ns-resize";
+        btn.style.backgroundColor = "var(--b3-theme-surface)";
+        btn.style.border = "1px solid var(--b3-theme-surface-lighter)";
+        btn.style.borderRadius = "12px"; 
+        btn.style.padding = "0 8px"; 
+        btn.style.height = "18px";
+        btn.style.display = "flex";
+        btn.style.alignItems = "center";
+        btn.style.justifyContent = "center";
+        btn.style.fontSize = "12px";
+        btn.style.color = "var(--b3-theme-on-surface-light)";
+        // btn.style.transform = "translateY(-50%)"; // No longer centering on line if we want to position explicitly
+        btn.style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)";
+        btn.title = "点击折叠，拖拽调整范围";
+        btn.draggable = true;
+
+        // Icon: Two horizontal lines (Hamburger style)
+        btn.innerHTML = `<svg style="width: 10px; height: 10px;" viewBox="0 0 24 24"><path d="M4 10h16M4 14h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+        // Events
+        btn.addEventListener("click", (e) => {
             e.stopPropagation();
             if (type === "morning") {
                 this.isMorningCollapsed = true;
@@ -255,17 +283,17 @@ export class CalendarView {
             this.render();
         });
 
-        collapseBtn.addEventListener("dragstart", (e) => {
+        btn.addEventListener("dragstart", (e) => {
             e.stopPropagation();
             e.dataTransfer!.setData("application/collapse-type", type);
             e.dataTransfer!.effectAllowed = "move";
-            // Set a transparent image or similar to avoid big ghost
             const img = new Image();
-            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // 1x1 transparent
+            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; 
             e.dataTransfer!.setDragImage(img, 0, 0);
         });
 
-        container.appendChild(collapseBtn);
+        separator.appendChild(btn);
+        container.appendChild(separator);
     }
 
     private renderWeekView() {
@@ -501,7 +529,7 @@ export class CalendarView {
 
             // 1. Morning Section
             if (this.isMorningCollapsed) {
-                renderTimeSlot(0, this.COLLAPSED_HEIGHT, "00:00 - 07:00", true);
+                renderTimeSlot(0, this.COLLAPSED_HEIGHT, `00:00 - ${this.MORNING_END_HOUR.toString().padStart(2, '0')}:00`, true);
             } else {
                 for (let i = 0; i < this.MORNING_END_HOUR; i++) {
                     renderTimeSlot(i, this.HOUR_HEIGHT, `${i.toString().padStart(2, '0')}:00`);
@@ -511,7 +539,7 @@ export class CalendarView {
             // 2. Day Section
             for (let i = this.MORNING_END_HOUR; i < this.EVENING_START_HOUR; i++) {
                 let labelText = `${i.toString().padStart(2, '0')}:00`;
-                // Hide label if morning is collapsed to avoid duplication with "00:00 - 07:00"
+                // Hide label if morning is collapsed to avoid duplication with "00:00 - XX:00"
                 if (this.isMorningCollapsed && i === this.MORNING_END_HOUR) {
                     labelText = "";
                 }
@@ -520,7 +548,7 @@ export class CalendarView {
 
             // 3. Evening Section
             if (this.isEveningCollapsed) {
-                 renderTimeSlot(this.EVENING_START_HOUR, this.COLLAPSED_HEIGHT, "20:00 - 00:00", true);
+                 renderTimeSlot(this.EVENING_START_HOUR, this.COLLAPSED_HEIGHT, `${this.EVENING_START_HOUR.toString().padStart(2, '0')}:00 - 24:00`, true);
             } else {
                 for (let i = this.EVENING_START_HOUR; i < 24; i++) {
                     renderTimeSlot(i, this.HOUR_HEIGHT, `${i.toString().padStart(2, '0')}:00`);
@@ -719,9 +747,17 @@ export class CalendarView {
         const taskSlots: (ITask | null)[][] = []; 
         
         weekTasks.sort((a, b) => {
+            // 1. Priority
+            const pA = a.priority ?? Number.MAX_SAFE_INTEGER;
+            const pB = b.priority ?? Number.MAX_SAFE_INTEGER;
+            if (pA !== pB) return pA - pB;
+
+            // 2. Duration
             const spanA = dayjs(a.endTime).diff(dayjs(a.startTime));
             const spanB = dayjs(b.endTime).diff(dayjs(b.startTime));
             if (spanA !== spanB) return spanB - spanA;
+            
+            // 3. Start Time
             return a.startTime - b.startTime;
         });
 
@@ -824,6 +860,7 @@ export class CalendarView {
                             click: async () => {
                                 await this.store.removeTask(task.id);
                                 this.render();
+                                if (this.onTaskUpdate) this.onTaskUpdate();
                             }
                         });
                         menu.open({ x: e.clientX, y: e.clientY, isLeft: true });
@@ -1025,6 +1062,7 @@ export class CalendarView {
                             click: async () => {
                                 await this.store.removeTask(task.id);
                                 this.render();
+                                if (this.onTaskUpdate) this.onTaskUpdate();
                             }
                         });
                         menu.open({ x: e.clientX, y: e.clientY, isLeft: true });
@@ -1122,11 +1160,19 @@ export class CalendarView {
         // Layout algorithm
         const taskSlots: (ITask | null)[][] = []; // row -> col(0-6) -> task
 
-        // Sort tasks: longer tasks first, then earlier start time
+        // Sort tasks: Priority (High to Low), then Duration (Long to Short), then Start Time (Early to Late)
         weekTasks.sort((a, b) => {
+            // 1. Priority
+            const pA = a.priority ?? Number.MAX_SAFE_INTEGER;
+            const pB = b.priority ?? Number.MAX_SAFE_INTEGER;
+            if (pA !== pB) return pA - pB;
+
+            // 2. Duration
             const spanA = dayjs(a.endTime).diff(dayjs(a.startTime));
             const spanB = dayjs(b.endTime).diff(dayjs(b.startTime));
             if (spanA !== spanB) return spanB - spanA;
+            
+            // 3. Start Time
             return a.startTime - b.startTime;
         });
 
@@ -1243,6 +1289,7 @@ export class CalendarView {
                             click: async () => {
                                 await this.store.removeTask(task.id);
                                 this.render();
+                                if (this.onTaskUpdate) this.onTaskUpdate();
                             }
                         });
                         menu.open({
