@@ -9,6 +9,7 @@ export class TaskList {
     private store: TaskStore;
     private onTaskUpdate: () => void;
     private onTaskClick?: (taskId: string | null) => void;
+    private activeFilters: string[] = ["work", "life", "none"];
 
     constructor(container: HTMLElement, store: TaskStore, onTaskUpdate: () => void, onTaskClick?: (taskId: string | null) => void) {
         this.container = container;
@@ -21,8 +22,11 @@ export class TaskList {
         this.container.innerHTML = `
             <div class="task-list-view">
                 <div class="task-list-header">
-                    <h3>任务列表</h3>
+                    <h3>任务管理</h3>
                     <div style="display: flex; gap: 4px;">
+                        <button id="filterTasksBtn" class="b3-button b3-button--text" aria-label="筛选">
+                            <svg><use xlink:href="#iconFilter"></use></svg>
+                        </button>
                         <button id="updatePriorityBtn" class="b3-button b3-button--text" aria-label="更新优先级">
                             <svg><use xlink:href="#iconSort"></use></svg>
                         </button>
@@ -45,7 +49,14 @@ export class TaskList {
         const listContent = this.container.querySelector("#taskListContent");
         if (!listContent) return;
 
-        const tasks = this.store.getTasks();
+        let tasks = this.store.getTasks();
+        
+        // Filter by category
+        tasks = tasks.filter(t => {
+            const cat = t.category || "none";
+            return this.activeFilters.includes(cat);
+        });
+
         // Sort tasks: 
         // 1. Tasks with priority first
         // 2. Higher priority value first (descending)
@@ -64,7 +75,7 @@ export class TaskList {
             }
 
             // Fallback to start time desc
-            return b.startTime - a.startTime;
+            return (b.startTime || 0) - (a.startTime || 0);
         });
 
         if (tasks.length === 0) {
@@ -81,8 +92,9 @@ export class TaskList {
                 <div class="task-info">
                     <div class="task-title">${task.content}</div>
                     <div class="task-meta">
-                        <span class="task-date">${dayjs(task.startTime).format("MM-DD HH:mm")}</span>
+                        ${task.startTime ? `<span class="task-date">${dayjs(task.startTime).format("MM-DD HH:mm")}</span>` : ''}
                         ${task.priority !== undefined ? `<span class="task-priority" style="margin-left: 8px; color: var(--b3-theme-primary);">P${task.priority}</span>` : ''}
+                        ${task.category && task.category !== 'none' ? `<span class="task-category" style="margin-left: 8px; background-color: var(--b3-theme-surface-lighter); padding: 0 4px; border-radius: 4px; font-size: 10px; color: var(--b3-theme-on-surface);">${task.category === 'work' ? '工作' : '生活'}</span>` : ''}
                     </div>
                 </div>
             `;
@@ -141,8 +153,62 @@ export class TaskList {
             this.showTaskDialog();
         });
 
+        this.container.querySelector("#filterTasksBtn")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.showFilterMenu(e as MouseEvent);
+        });
+
         this.container.querySelector("#updatePriorityBtn")?.addEventListener("click", () => {
             this.updatePriorities();
+        });
+    }
+
+    private showFilterMenu(e: MouseEvent) {
+        const menu = new Menu("task-filter-menu");
+
+        const allSelected = this.activeFilters.length === 3;
+        
+        menu.addItem({
+            label: allSelected ? "取消全选" : "全选",
+            click: () => {
+                if (allSelected) {
+                    this.activeFilters = [];
+                } else {
+                    this.activeFilters = ["work", "life", "none"];
+                }
+                this.renderTasks();
+            }
+        });
+
+        menu.addSeparator();
+
+        const options = [
+            { key: "none", label: "无分类" },
+            { key: "work", label: "工作" },
+            { key: "life", label: "生活" }
+        ];
+
+        options.forEach(opt => {
+            const isChecked = this.activeFilters.includes(opt.key);
+            menu.addItem({
+                icon: isChecked ? "iconCheck" : undefined,
+                label: opt.label,
+                click: () => {
+                    if (isChecked) {
+                        this.activeFilters = this.activeFilters.filter(k => k !== opt.key);
+                    } else {
+                        this.activeFilters.push(opt.key);
+                    }
+                    this.renderTasks();
+                }
+            });
+        });
+
+        menu.open({
+            x: e.clientX,
+            y: e.clientY,
+            isLeft: true
         });
     }
 
@@ -201,8 +267,27 @@ export class TaskList {
 
     public showTaskDialog(task?: ITask, initialDateRange?: { start: dayjs.Dayjs, end: dayjs.Dayjs }) {
         const isEdit = !!task;
-        const startTime = task ? dayjs(task.startTime) : (initialDateRange ? initialDateRange.start : dayjs());
-        const endTime = task ? dayjs(task.endTime) : (initialDateRange ? initialDateRange.end : dayjs().add(1, 'hour'));
+        
+        let startTime = dayjs();
+        let endTime = dayjs().add(1, 'hour');
+        let hasDate = true;
+
+        if (task) {
+            if (task.startTime) {
+                startTime = dayjs(task.startTime);
+                endTime = dayjs(task.endTime);
+            } else {
+                hasDate = false;
+            }
+        } else if (initialDateRange) {
+            startTime = initialDateRange.start;
+            endTime = initialDateRange.end;
+        }
+
+        const startDateStr = hasDate ? startTime.format('YYYY-MM-DD') : "选择日期";
+        const startTimeStr = hasDate ? startTime.format('HH:mm') : "09:00";
+        const endDateStr = hasDate ? endTime.format('YYYY-MM-DD') : "选择日期";
+        const endTimeStr = hasDate ? endTime.format('HH:mm') : "10:00";
 
         const dialog = new Dialog({
             title: isEdit ? "编辑任务" : "添加新任务",
@@ -216,25 +301,33 @@ export class TaskList {
                         <div class="fn__flex" style="align-items: center;">
                             <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">开始</label>
                             <div class="fn__flex fn__flex-1" style="gap: 8px;">
-                                <button id="dialogStartDateBtn" class="b3-button b3-button--outline fn__flex-1" style="justify-content: flex-start; text-align: left; padding: 4px 8px;">
-                                    ${startTime.format('YYYY-MM-DD')}
+                                <button id="dialogStartDateBtn" class="b3-button b3-button--outline fn__flex-1" style="justify-content: flex-start; text-align: left; padding: 4px 8px; color: ${hasDate ? 'var(--b3-theme-on-background)' : 'var(--b3-theme-on-surface-light)'};">
+                                    ${startDateStr}
                                 </button>
                                 <select id="dialogStartTime" class="b3-select fn__flex-1">
-                                    ${this.generateTimeOptions(startTime.format('HH:mm'))}
+                                    ${this.generateTimeOptions(startTimeStr)}
                                 </select>
                             </div>
                         </div>
                         <div class="fn__flex" style="align-items: center;">
                             <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">结束</label>
                             <div class="fn__flex fn__flex-1" style="gap: 8px;">
-                                <button id="dialogEndDateBtn" class="b3-button b3-button--outline fn__flex-1" style="justify-content: flex-start; text-align: left; padding: 4px 8px;">
-                                    ${endTime.format('YYYY-MM-DD')}
+                                <button id="dialogEndDateBtn" class="b3-button b3-button--outline fn__flex-1" style="justify-content: flex-start; text-align: left; padding: 4px 8px; color: ${hasDate ? 'var(--b3-theme-on-background)' : 'var(--b3-theme-on-surface-light)'};">
+                                    ${endDateStr}
                                 </button>
                                 <select id="dialogEndTime" class="b3-select fn__flex-1">
-                                    ${this.generateTimeOptions(endTime.format('HH:mm'))}
+                                    ${this.generateTimeOptions(endTimeStr)}
                                 </select>
                             </div>
                         </div>
+                        
+                        <!-- Clear Date Button -->
+                        <div class="fn__flex" style="justify-content: flex-end;">
+                            <button id="dialogClearDateBtn" class="b3-button b3-button--text" style="height: 24px; padding: 0 8px; font-size: 12px; color: var(--b3-theme-on-surface-light);">
+                                <span style="margin-right: 4px;">✕</span> 清空日期
+                            </button>
+                        </div>
+
                         <div class="fn__flex" style="align-items: center;">
                             <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">全天</label>
                             <div class="fn__flex-1 fn__flex" style="justify-content: flex-end;">
@@ -244,6 +337,14 @@ export class TaskList {
                         <div class="fn__flex" style="align-items: center;">
                             <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">优先级</label>
                             <input type="number" id="dialogPriority" class="b3-text-field fn__flex-1" placeholder="无" min="1" value="${task && task.priority !== undefined ? task.priority : ''}" />
+                        </div>
+                        <div class="fn__flex" style="align-items: center;">
+                            <label class="fn__flex" style="width: 60px; color: var(--b3-theme-on-surface);">分类</label>
+                            <select id="dialogCategory" class="b3-select fn__flex-1">
+                                <option value="none" ${(!task?.category || task.category === 'none') ? 'selected' : ''}>无</option>
+                                <option value="work" ${task?.category === 'work' ? 'selected' : ''}>工作</option>
+                                <option value="life" ${task?.category === 'life' ? 'selected' : ''}>生活</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -262,6 +363,7 @@ export class TaskList {
         const endTimeInput = dialog.element.querySelector("#dialogEndTime") as HTMLSelectElement;
         const allDayInput = dialog.element.querySelector("#dialogAllDay") as HTMLInputElement;
         const priorityInput = dialog.element.querySelector("#dialogPriority") as HTMLInputElement;
+        const categoryInput = dialog.element.querySelector("#dialogCategory") as HTMLSelectElement;
 
         // Initialize All Day state
         if (task && task.allDay) {
@@ -271,8 +373,8 @@ export class TaskList {
         }
 
         // Variables to store selected dates
-        let selectedStartDate = startTime.format('YYYY-MM-DD');
-        let selectedEndDate = endTime.format('YYYY-MM-DD');
+        let selectedStartDate = hasDate ? startTime.format('YYYY-MM-DD') : "";
+        let selectedEndDate = hasDate ? endTime.format('YYYY-MM-DD') : "";
 
         // Helper to attach date picker
         const attachDatePicker = (btn: HTMLButtonElement, initialDate: string, onSelect: (date: string) => void) => {
@@ -300,7 +402,8 @@ export class TaskList {
                 // OR we can render a simple calendar. 
                 // Given the screenshot shows a custom calendar, let's implement a simple month view.
                 
-                let currentMonth = dayjs(initialDate);
+                let currentMonth = initialDate ? dayjs(initialDate) : dayjs();
+                if (!currentMonth.isValid()) currentMonth = dayjs();
                 
                 const renderCalendar = () => {
                     const startOfMonth = currentMonth.startOf('month');
@@ -370,9 +473,14 @@ export class TaskList {
                             <div class="calendar-day" 
                                  data-date="${dateStr}"
                                  style="position: relative; cursor: pointer; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                <div style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; 
-                                    ${isSelected ? 'background-color: var(--b3-theme-primary); color: #fff;' : (isToday ? 'background-color: rgba(var(--b3-theme-primary-rgb), 0.1); color: var(--b3-theme-primary);' : 'color: var(--b3-theme-on-background);')}">
-                                    <span style="font-size: 14px; font-weight: 500;">${i}</span>
+                                <div style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; box-sizing: border-box;
+                                    ${isSelected 
+                                        ? 'background-color: var(--b3-theme-primary); color: var(--b3-theme-on-primary); box-shadow: 0 2px 4px rgba(0,0,0,0.2);' 
+                                        : (isToday 
+                                            ? 'box-shadow: inset 0 0 0 1px var(--b3-theme-primary); background-color: rgba(var(--b3-theme-primary-rgb), 0.1); color: var(--b3-theme-primary); font-weight: bold;' 
+                                            : 'color: var(--b3-theme-on-background); border: 1px solid transparent;')
+                                    }">
+                                    <span style="font-size: 14px; ${isToday || isSelected ? 'font-weight: bold;' : 'font-weight: 500;'}">${i}</span>
                                 </div>
                                 <span style="font-size: 10px; margin-top: -2px; transform: scale(0.9); color: ${isSelected ? 'var(--b3-theme-primary)' : lunarColor}; opacity: ${isSelected ? 0.8 : 1}; white-space: nowrap; overflow: hidden; max-width: 100%; text-overflow: ellipsis;">
                                     ${lunarText}
@@ -433,11 +541,23 @@ export class TaskList {
         attachDatePicker(startDateBtn, selectedStartDate, (date) => {
             selectedStartDate = date;
             startDateBtn.textContent = date;
+            startDateBtn.style.color = "var(--b3-theme-on-background)";
         });
 
         attachDatePicker(endDateBtn, selectedEndDate, (date) => {
             selectedEndDate = date;
             endDateBtn.textContent = date;
+            endDateBtn.style.color = "var(--b3-theme-on-background)";
+        });
+
+        // Clear Date Button
+        dialog.element.querySelector("#dialogClearDateBtn")?.addEventListener("click", () => {
+            selectedStartDate = "";
+            selectedEndDate = "";
+            startDateBtn.textContent = "选择日期";
+            startDateBtn.style.color = "var(--b3-theme-on-surface-light)";
+            endDateBtn.textContent = "选择日期";
+            endDateBtn.style.color = "var(--b3-theme-on-surface-light)";
         });
 
         // Toggle time inputs when All Day is checked
@@ -477,21 +597,29 @@ export class TaskList {
                 priority = isNaN(parsed) ? undefined : Math.max(1, parsed);
             }
 
-            if (!content || !startDate || !endDate) {
+            const category = categoryInput.value === "none" ? undefined : categoryInput.value;
+
+            if (!content) {
                 return;
             }
 
-            let startDateTime = dayjs(`${startDate} ${isAllDay ? '00:00' : startTime}`);
-            let endDateTime = dayjs(`${endDate} ${isAllDay ? '23:59' : endTime}`);
+            let startDateTimeVal: number | undefined;
+            let endDateTimeVal: number | undefined;
+
+            if (startDate && endDate) {
+                startDateTimeVal = dayjs(`${startDate} ${isAllDay ? '00:00' : startTime}`).valueOf();
+                endDateTimeVal = dayjs(`${endDate} ${isAllDay ? '23:59' : endTime}`).valueOf();
+            }
 
             const newTask: ITask = {
                 id: task ? task.id : Date.now().toString(),
                 content,
-                startTime: startDateTime.valueOf(),
-                endTime: endDateTime.valueOf(),
+                startTime: startDateTimeVal,
+                endTime: endDateTimeVal,
                 createdAt: task ? task.createdAt : Date.now(),
                 priority,
-                allDay: isAllDay
+                allDay: isAllDay,
+                category
             };
 
             const saveTask = async (taskToSave: ITask, shifts: ITask[] = []) => {

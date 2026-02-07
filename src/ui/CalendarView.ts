@@ -710,6 +710,7 @@ export class CalendarView {
 
         // Filter for All Day tasks in this week
         const weekTasks = tasks.filter(task => {
+            if (!task.startTime || !task.endTime) return false;
             if (!task.allDay) return false;
 
             const taskStart = dayjs(task.startTime).startOf('day');
@@ -885,6 +886,7 @@ export class CalendarView {
         const weekEnd = startOfWeek.add(6, "day").endOf("day");
         
         const weekTasks = tasks.filter(task => {
+            if (!task.startTime || !task.endTime) return false;
             if (task.allDay) return false; // Skip All Day tasks
 
             const taskStart = dayjs(task.startTime);
@@ -1143,6 +1145,7 @@ export class CalendarView {
         
         // Filter tasks that overlap with this week
         const weekTasks = tasks.filter(task => {
+            if (!task.startTime || !task.endTime) return false;
             const taskStart = dayjs(task.startTime).startOf('day');
             
             let realTaskEnd = dayjs(task.endTime);

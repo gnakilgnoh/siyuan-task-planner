@@ -1,6 +1,6 @@
 {
   "name": "siyuan-task-planner",
-  "version": "0.1.0",
+  "version": "0.2.7",
   "description": "A task planning plugin for SiYuan Note",
   "main": "index.js",
   "scripts": {
