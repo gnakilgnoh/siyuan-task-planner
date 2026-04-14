@@ -295,76 +295,54 @@
         .ticktick-view-switcher {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 5px 12px;
+            padding: 2px;
             background-color: transparent;
             border: 1px solid var(--b3-theme-surface-lighter);
             border-radius: 6px;
-            color: var(--b3-theme-on-background);
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            outline: none;
             height: 32px;
             box-sizing: border-box;
 
-            &:hover {
-                border-color: #617fde; // Hover blue border
-                color: #617fde;
-            }
-
-            svg {
-                width: 10px;
-                height: 10px;
-                fill: currentColor;
-                opacity: 0.7;
-            }
-        }
-
-        .ticktick-nav-group {
-            display: flex;
-            align-items: center;
-            background-color: transparent;
-            border: 1px solid var(--b3-theme-surface-lighter);
-            border-radius: 6px;
-            overflow: hidden;
-            margin-left: 12px;
-            height: 32px;
-            box-sizing: border-box;
-
-            .nav-btn {
-                background: transparent;
+            .view-option {
                 border: none;
-                padding: 0 10px;
+                background: transparent;
+                color: var(--b3-theme-on-background);
+                padding: 0 16px;
+                border-radius: 4px;
                 cursor: pointer;
-                color: var(--b3-theme-on-surface-light);
+                font-size: 14px;
+                transition: all 0.2s;
+                height: 100%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                height: 100%;
-                transition: all 0.2s;
-                outline: none;
-                border-right: 1px solid var(--b3-theme-surface-lighter);
-
-                &:last-child {
-                    border-right: none;
-                }
 
                 &:hover {
-                    background-color: var(--b3-theme-background-light);
                     color: #617fde;
                 }
 
-                &.today-btn {
-                    padding: 0 16px;
-                    font-size: 14px;
-                    font-weight: 500;
-                    color: var(--b3-theme-on-background);
-                    
-                    &:hover {
-                        color: #617fde;
-                    }
+                &.selected {
+                    background-color: rgba(97, 127, 222, 0.15);
+                    color: #617fde;
                 }
+            }
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            padding: 0 10px;
+            cursor: pointer;
+            color: var(--b3-theme-on-surface-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            transition: all 0.2s;
+            outline: none;
+
+            &:hover {
+                background-color: var(--b3-theme-background-light);
+                color: #617fde;
             }
         }
     }

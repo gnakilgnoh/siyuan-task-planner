@@ -4,6 +4,38 @@ import { TaskStore } from "../services/TaskStore";
 import { Dialog, Menu } from "siyuan";
 import { Lunar, Solar, HolidayUtil } from "lunar-javascript";
 
+// Helper function to filter out informal/minor festivals
+function getMajorFestival(lunar: any, solar: any): string {
+    const lunarFestivals = lunar.getFestivals();
+    if (lunarFestivals.length > 0) {
+        return lunarFestivals[0];
+    }
+    
+    const solarFestivals = solar.getFestivals();
+    const validSolarFestivals = solarFestivals.filter((f: string) => {
+        return !f.includes("全国") && 
+               !f.includes("世界") && 
+               !f.includes("国际") && 
+               !f.includes("教育日") && 
+               !f.includes("纪念日") && 
+               !f.includes("防治日") && 
+               !f.includes("活动日") && 
+               !f.includes("周") && 
+               !f.includes("学生");
+    });
+    
+    if (validSolarFestivals.length > 0) {
+        return validSolarFestivals[0];
+    }
+    
+    const jieQi = lunar.getJieQi();
+    if (jieQi) {
+        return jieQi;
+    }
+    
+    return "";
+}
+
 export class TaskList {
     private container: HTMLElement;
     private store: TaskStore;
@@ -446,7 +478,7 @@ export class TaskList {
                         const solar = Solar.fromYmd(dateObj.year(), dateObj.month() + 1, dateObj.date());
                         const lunar = Lunar.fromSolar(solar);
                         const dayLunar = lunar.getDayInChinese();
-                        const festival = lunar.getFestivals()[0] || solar.getFestivals()[0] || lunar.getJieQi() || dayLunar;
+                        const festival = getMajorFestival(lunar, solar);
                         const holiday = HolidayUtil.getHoliday(dateObj.year(), dateObj.month() + 1, dateObj.date());
                         
                         // Determine display text and color for lunar/festival
@@ -454,7 +486,7 @@ export class TaskList {
                         let lunarColor = "var(--b3-theme-on-surface-light)";
                         
                         // Show festival if available (simplified logic)
-                        if (lunar.getFestivals()[0] || solar.getFestivals()[0] || lunar.getJieQi()) {
+                        if (festival) {
                             lunarText = festival;
                             lunarColor = "var(--b3-theme-primary)";
                         }

@@ -9,6 +9,38 @@ import { Menu } from "siyuan";
 dayjs.extend(isBetween);
 dayjs.extend(weekOfYear);
 
+// Helper function to filter out informal/minor festivals
+function getMajorFestival(lunar: any, solar: any): string {
+    const lunarFestivals = lunar.getFestivals();
+    if (lunarFestivals.length > 0) {
+        return lunarFestivals[0];
+    }
+    
+    const solarFestivals = solar.getFestivals();
+    const validSolarFestivals = solarFestivals.filter((f: string) => {
+        return !f.includes("全国") && 
+               !f.includes("世界") && 
+               !f.includes("国际") && 
+               !f.includes("教育日") && 
+               !f.includes("纪念日") && 
+               !f.includes("防治日") && 
+               !f.includes("活动日") && 
+               !f.includes("周") && 
+               !f.includes("学生");
+    });
+    
+    if (validSolarFestivals.length > 0) {
+        return validSolarFestivals[0];
+    }
+    
+    const jieQi = lunar.getJieQi();
+    if (jieQi) {
+        return jieQi;
+    }
+    
+    return "";
+}
+
 export class CalendarView {
     private container: HTMLElement;
     private store: TaskStore;
@@ -22,7 +54,6 @@ export class CalendarView {
     private readonly COLLAPSED_HEIGHT = 50;
 
     private isDatePickerOpen: boolean = false;
-    private isViewSwitcherOpen: boolean = false;
     private pickerYear: number;
     private onEditTask?: (task: ITask) => void;
     private onTaskClick?: (taskId: string) => void;
@@ -59,8 +90,20 @@ export class CalendarView {
             <div class="task-planner-calendar" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
                 <div class="calendar-header" style="padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
                     <div class="header-left" style="display: flex; align-items: center; gap: 16px; position: relative;">
-                        <div class="current-date-wrapper" style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                            <span class="current-date" style="font-size: 20px; font-weight: 600; color: var(--b3-theme-on-background);">${headerText}</span>
+                        <button id="todayBtn" class="b3-button b3-button--outline" style="padding: 4px 12px; height: 32px; background: transparent;">今天</button>
+                        
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <button id="prevBtn" class="nav-btn" title="上一个" style="background: transparent; border: none; padding: 4px; cursor: pointer; color: var(--b3-theme-on-surface-light);">
+                                <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z" fill="currentColor"></path></svg>
+                            </button>
+                            <button id="nextBtn" class="nav-btn" title="下一个" style="background: transparent; border: none; padding: 4px; cursor: pointer; color: var(--b3-theme-on-surface-light);">
+                                <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" fill="currentColor"></path></svg>
+                            </button>
+                        </div>
+
+                        <div class="current-date-wrapper" style="cursor: pointer; display: flex; align-items: center; gap: 4px; margin-left: 8px;">
+                            <span class="current-date" style="font-size: 18px; font-weight: 500; color: var(--b3-theme-on-background);">${headerText}</span>
+                            <svg style="width: 14px; height: 14px; color: var(--b3-theme-on-surface-light);" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" fill="currentColor"></path></svg>
                         </div>
                         
                         <!-- Date Picker Popup -->
@@ -88,32 +131,9 @@ export class CalendarView {
                         </div>
                     </div>
                     <div class="header-right" style="display: flex; gap: 8px;">
-                        <div style="position: relative;">
-                            <button id="viewSwitcherBtn" class="ticktick-view-switcher">
-                                <span>${this.viewMode === 'month' ? '月' : '周'}</span>
-                                <svg style="width: 10px; height: 10px;" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" fill="currentColor"></path></svg>
-                            </button>
-                            <!-- View Switcher Popup -->
-                            <div class="view-switcher-popup ${this.isViewSwitcherOpen ? '' : 'fn__none'}" style="position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--b3-theme-surface); border: 1px solid var(--b3-theme-surface-lighter); border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10; min-width: 80px; padding: 4px 0;">
-                                <div class="view-option ${this.viewMode === 'month' ? 'selected' : ''}" data-view="month" style="padding: 8px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>月</span>
-                                    ${this.viewMode === 'month' ? '<svg style="width: 12px; height: 12px; color: var(--b3-theme-primary);" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor"></path></svg>' : ''}
-                                </div>
-                                <div class="view-option ${this.viewMode === 'week' ? 'selected' : ''}" data-view="week" style="padding: 8px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>周</span>
-                                    ${this.viewMode === 'week' ? '<svg style="width: 12px; height: 12px; color: var(--b3-theme-primary);" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor"></path></svg>' : ''}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="ticktick-nav-group">
-                            <button id="prevBtn" class="nav-btn" title="上一个">
-                                <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill="currentColor"></path></svg>
-                            </button>
-                            <button id="todayBtn" class="nav-btn today-btn">今天</button>
-                            <button id="nextBtn" class="nav-btn" title="下一个">
-                                <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" fill="currentColor"></path></svg>
-                            </button>
+                        <div class="ticktick-view-switcher">
+                            <button class="view-option ${this.viewMode === 'week' ? 'selected' : ''}" data-view="week">周</button>
+                            <button class="view-option ${this.viewMode === 'month' ? 'selected' : ''}" data-view="month">月</button>
                         </div>
                     </div>
                 </div>
@@ -343,12 +363,12 @@ export class CalendarView {
                 const isToday = date.isSame(dayjs(), "day");
                 const solar = Solar.fromYmd(date.year(), date.month() + 1, date.date());
                 const lunar = solar.getLunar();
-                const festival = lunar.getFestivals()[0] || solar.getFestivals()[0] || lunar.getJieQi() || "";
+                const festival = getMajorFestival(lunar, solar);
                 const displayLunar = festival ? festival : lunar.getDayInChinese();
                 
                 let dayNumStyle = "font-size: 18px; font-weight: 600;";
                 if (isToday) {
-                    dayNumStyle += "color: var(--b3-theme-on-primary); background: var(--b3-theme-primary); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;";
+                    dayNumStyle += "color: #fff; background: #617fde; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;";
                 } else {
                     dayNumStyle += "color: var(--b3-theme-on-background);";
                 }
@@ -1106,7 +1126,7 @@ export class CalendarView {
             const solar = Solar.fromYmd(date.year(), date.month() + 1, date.date());
             const lunar = solar.getLunar();
             const lunarText = lunar.getDayInChinese();
-            const festival = lunar.getFestivals()[0] || solar.getFestivals()[0] || lunar.getJieQi() || "";
+            const festival = getMajorFestival(lunar, solar);
 
             const displayLunar = festival ? festival : lunarText;
             const isFestival = !!festival;
@@ -1120,7 +1140,7 @@ export class CalendarView {
 
             let dayNumStyle = "font-size: 14px; font-weight: 500;";
             if (date.isSame(dayjs(), "day")) {
-                dayNumStyle += "background-color: var(--b3-theme-primary); color: var(--b3-theme-on-primary); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;";
+                dayNumStyle += "background-color: #617fde; color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;";
             }
 
             cell.innerHTML = `
@@ -1344,30 +1364,13 @@ export class CalendarView {
         });
 
         // View Switcher
-        const switcherBtn = this.container.querySelector("#viewSwitcherBtn");
-        const switcherPopup = this.container.querySelector(".view-switcher-popup");
-
-        switcherBtn?.addEventListener("click", (e) => {
-            e.stopPropagation();
-            this.isViewSwitcherOpen = !this.isViewSwitcherOpen;
-            this.render();
-        });
-        
-        switcherPopup?.addEventListener("click", (e) => {
-            e.stopPropagation();
-        });
-
         this.container.querySelectorAll(".view-option").forEach(option => {
             option.addEventListener("click", (e) => {
                 e.stopPropagation();
                 const mode = (e.currentTarget as HTMLElement).dataset.view as 'month' | 'week';
                 if (mode && mode !== this.viewMode) {
                     this.viewMode = mode;
-                    this.isViewSwitcherOpen = false;
                     this.render();
-                } else {
-                     this.isViewSwitcherOpen = false;
-                     this.render();
                 }
             });
         });
@@ -1387,18 +1390,10 @@ export class CalendarView {
             e.stopPropagation();
         });
 
-        if (this.isDatePickerOpen || this.isViewSwitcherOpen) {
+        if (this.isDatePickerOpen) {
             document.addEventListener("click", () => {
-                let changed = false;
-                if (this.isDatePickerOpen) {
-                    this.isDatePickerOpen = false;
-                    changed = true;
-                }
-                if (this.isViewSwitcherOpen) {
-                    this.isViewSwitcherOpen = false;
-                    changed = true;
-                }
-                if (changed) this.render();
+                this.isDatePickerOpen = false;
+                this.render();
             }, { once: true });
         }
         
@@ -1436,9 +1431,8 @@ export class CalendarView {
         this.container.querySelector(".task-planner-calendar")?.addEventListener("click", (e) => {
             const target = e.target as HTMLElement;
             if (target.closest(".task-bar") || 
-                target.closest(".view-switcher-popup") || 
+                target.closest(".ticktick-view-switcher") || 
                 target.closest(".date-picker-popup") || 
-                target.closest("#viewSwitcherBtn") || 
                 target.closest(".current-date-wrapper") ||
                 target.closest(".picker-nav") ||
                 target.closest(".nav-btn")) {
